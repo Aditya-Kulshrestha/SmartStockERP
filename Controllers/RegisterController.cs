@@ -1,6 +1,4 @@
-﻿
-
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace SmartStockERP.Controllers
@@ -14,11 +12,6 @@ namespace SmartStockERP.Controllers
             _config = config;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
-
         [HttpGet]
         public IActionResult GetAllCompanies()
         {
@@ -26,25 +19,25 @@ namespace SmartStockERP.Controllers
             {
                 string connStr = _config.GetConnectionString("DefaultConnection");
 
+                var list = new List<object>();
+
                 using var con = new NpgsqlConnection(connStr);
                 con.Open();
 
                 var cmd = new NpgsqlCommand(@"
-            SELECT company_id, company_name
-            FROM companies
-            ORDER BY company_id DESC
-        ", con);
+                    SELECT company_id, company_name 
+                    FROM companies 
+                    ORDER BY company_id DESC
+                ", con);
 
                 using var dr = cmd.ExecuteReader();
-
-                List<object> list = new();
 
                 while (dr.Read())
                 {
                     list.Add(new
                     {
-                        companyId = dr["company_id"],
-                        companyName = dr["company_name"]
+                        companyId = dr["company_id"]?.ToString(),
+                        companyName = dr["company_name"]?.ToString()
                     });
                 }
 
@@ -52,20 +45,19 @@ namespace SmartStockERP.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.ToString());
+                return StatusCode(500, ex.Message);
             }
         }
 
-
         [HttpPost]
         public IActionResult Register(
-      int? companyId,
-      string companyName,
-      string ownerName,
-      string email,
-      string phone,
-      string password,
-      string role)
+            int? companyId,
+            string companyName,
+            string ownerName,
+            string email,
+            string phone,
+            string password,
+            string role)
         {
             try
             {
@@ -73,12 +65,10 @@ namespace SmartStockERP.Controllers
 
                 using var con = new NpgsqlConnection(connStr);
                 con.Open();
-
                 using var tx = con.BeginTransaction();
 
                 int finalCompanyId;
 
-                // EXISTING COMPANY
                 if (companyId.HasValue && companyId.Value > 0)
                 {
                     finalCompanyId = companyId.Value;
@@ -86,55 +76,47 @@ namespace SmartStockERP.Controllers
                 else
                 {
                     var checkCompany = new NpgsqlCommand(@"
-                SELECT COUNT(*) FROM companies
-                WHERE company_name = @Name
-            ", con, tx);
+                        SELECT COUNT(*) FROM companies WHERE company_name=@Name
+                    ", con, tx);
 
-                    checkCompany.Parameters.AddWithValue("@Name", companyName);
+                    checkCompany.Parameters.AddWithValue("@Name", companyName ?? "");
 
-                    long exists = (long)checkCompany.ExecuteScalar();
+                    var existsObj = checkCompany.ExecuteScalar();
+                    long exists = existsObj == null ? 0 : Convert.ToInt64(existsObj);
 
                     if (exists > 0)
-                    {
-                        tx.Rollback();
                         return BadRequest("Company already exists");
-                    }
 
                     var insertCompany = new NpgsqlCommand(@"
-                INSERT INTO companies(company_name, email, phone)
-                VALUES(@Name, @Email, @Phone)
-                RETURNING company_id
-            ", con, tx);
+                        INSERT INTO companies(company_name, email, phone)
+                        VALUES(@Name, @Email, @Phone)
+                        RETURNING company_id
+                    ", con, tx);
 
-                    insertCompany.Parameters.AddWithValue("@Name", companyName);
+                    insertCompany.Parameters.AddWithValue("@Name", companyName ?? "");
                     insertCompany.Parameters.AddWithValue("@Email", (object?)email ?? DBNull.Value);
                     insertCompany.Parameters.AddWithValue("@Phone", (object?)phone ?? DBNull.Value);
 
-                    finalCompanyId = (int)insertCompany.ExecuteScalar();
+                    finalCompanyId = Convert.ToInt32(insertCompany.ExecuteScalar());
                 }
 
-                // USER CHECK
                 var checkUser = new NpgsqlCommand(@"
-            SELECT COUNT(*) FROM users
-            WHERE email = @Email AND company_id = @CompanyId
-        ", con, tx);
+                    SELECT COUNT(*) FROM users 
+                    WHERE email=@Email AND company_id=@CompanyId
+                ", con, tx);
 
-                checkUser.Parameters.AddWithValue("@Email", email);
+                checkUser.Parameters.AddWithValue("@Email", email ?? "");
                 checkUser.Parameters.AddWithValue("@CompanyId", finalCompanyId);
 
-                long userExists = (long)checkUser.ExecuteScalar();
+                long userExists = Convert.ToInt64(checkUser.ExecuteScalar() ?? 0);
 
                 if (userExists > 0)
-                {
-                    tx.Rollback();
                     return BadRequest("User already exists");
-                }
 
-                // INSERT USER
                 var insertUser = new NpgsqlCommand(@"
-            INSERT INTO users(company_id, name, email, password, role)
-            VALUES(@CompanyId, @Name, @Email, @Password, @Role)
-        ", con, tx);
+                    INSERT INTO users(company_id, name, email, password, role)
+                    VALUES(@CompanyId, @Name, @Email, @Password, @Role)
+                ", con, tx);
 
                 insertUser.Parameters.AddWithValue("@CompanyId", finalCompanyId);
                 insertUser.Parameters.AddWithValue("@Name", ownerName ?? "");
@@ -150,7 +132,7 @@ namespace SmartStockERP.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.ToString()); // IMPORTANT
+                return StatusCode(500, ex.Message);
             }
         }
     }
