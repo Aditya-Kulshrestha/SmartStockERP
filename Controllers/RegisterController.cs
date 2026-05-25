@@ -59,16 +59,17 @@ namespace SmartStockERP.Controllers
             string password,
             string role)
         {
+            string connStr = _config.GetConnectionString("DefaultConnection");
+
+            using var con = new NpgsqlConnection(connStr);
+            con.Open();
+            using var tx = con.BeginTransaction();
+
             try
             {
-                string connStr = _config.GetConnectionString("DefaultConnection");
-
-                using var con = new NpgsqlConnection(connStr);
-                con.Open();
-                using var tx = con.BeginTransaction();
-
                 int finalCompanyId;
 
+                // EXISTING COMPANY
                 if (companyId.HasValue && companyId.Value > 0)
                 {
                     finalCompanyId = companyId.Value;
@@ -81,11 +82,13 @@ namespace SmartStockERP.Controllers
 
                     checkCompany.Parameters.AddWithValue("@Name", companyName ?? "");
 
-                    var existsObj = checkCompany.ExecuteScalar();
-                    long exists = existsObj == null ? 0 : Convert.ToInt64(existsObj);
+                    long exists = Convert.ToInt64(checkCompany.ExecuteScalar() ?? 0);
 
                     if (exists > 0)
+                    {
+                        tx.Rollback();
                         return BadRequest("Company already exists");
+                    }
 
                     var insertCompany = new NpgsqlCommand(@"
                         INSERT INTO companies(company_name, email, phone)
@@ -100,6 +103,7 @@ namespace SmartStockERP.Controllers
                     finalCompanyId = Convert.ToInt32(insertCompany.ExecuteScalar());
                 }
 
+                // USER CHECK
                 var checkUser = new NpgsqlCommand(@"
                     SELECT COUNT(*) FROM users 
                     WHERE email=@Email AND company_id=@CompanyId
@@ -111,8 +115,12 @@ namespace SmartStockERP.Controllers
                 long userExists = Convert.ToInt64(checkUser.ExecuteScalar() ?? 0);
 
                 if (userExists > 0)
+                {
+                    tx.Rollback();
                     return BadRequest("User already exists");
+                }
 
+                // INSERT USER
                 var insertUser = new NpgsqlCommand(@"
                     INSERT INTO users(company_id, name, email, password, role)
                     VALUES(@CompanyId, @Name, @Email, @Password, @Role)
@@ -127,11 +135,11 @@ namespace SmartStockERP.Controllers
                 insertUser.ExecuteNonQuery();
 
                 tx.Commit();
-
                 return Ok();
             }
             catch (Exception ex)
             {
+                tx.Rollback();
                 return StatusCode(500, ex.Message);
             }
         }

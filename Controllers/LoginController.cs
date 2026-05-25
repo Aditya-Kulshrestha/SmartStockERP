@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿
+using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 public class LoginController : Controller
@@ -14,7 +15,7 @@ public class LoginController : Controller
     {
         return View();
     }
-
+    [HttpPost]
     [HttpPost]
     public IActionResult Login(string email, string password, string companyId)
     {
@@ -23,23 +24,16 @@ public class LoginController : Controller
             string connStr = _config.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrEmpty(companyId))
-                return BadRequest("Company is required");
+                return Json(new { success = false, message = "Company required" });
 
-            if (!int.TryParse(companyId, out int cid))
-                return BadRequest("Invalid company id");
+            int cid = 0;
+            int.TryParse(companyId, out cid);
 
             using var con = new NpgsqlConnection(connStr);
-
-            con.ConnectionTimeout = 15;
             con.Open();
 
             var cmd = new NpgsqlCommand(@"
-                SELECT 
-                    u.user_id,
-                    u.company_id,
-                    u.name,
-                    u.role,
-                    c.company_name
+                SELECT u.user_id, u.company_id, u.name, u.role, c.company_name
                 FROM users u
                 JOIN companies c ON u.company_id = c.company_id
                 WHERE u.email = @Email
@@ -56,11 +50,11 @@ public class LoginController : Controller
 
             if (dr.Read())
             {
-                HttpContext.Session.SetString("UserId", dr["user_id"]?.ToString() ?? "");
-                HttpContext.Session.SetString("CompanyId", dr["company_id"]?.ToString() ?? "");
-                HttpContext.Session.SetString("CompanyName", dr["company_name"]?.ToString() ?? "");
-                HttpContext.Session.SetString("Name", dr["name"]?.ToString() ?? "");
-                HttpContext.Session.SetString("Role", dr["role"]?.ToString() ?? "");
+                HttpContext.Session.SetString("UserId", dr["user_id"].ToString());
+                HttpContext.Session.SetString("CompanyId", dr["company_id"].ToString());
+                HttpContext.Session.SetString("CompanyName", dr["company_name"].ToString());
+                HttpContext.Session.SetString("Name", dr["name"].ToString());
+                HttpContext.Session.SetString("Role", dr["role"].ToString());
 
                 return Json(new { success = true, redirect = "/Dashboard/Index" });
             }
@@ -69,7 +63,7 @@ public class LoginController : Controller
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ex.ToString());
+            return StatusCode(500, ex.Message);
         }
     }
 
@@ -80,37 +74,42 @@ public class LoginController : Controller
         {
             string connStr = _config.GetConnectionString("DefaultConnection");
 
+            List<object> companies = new();
+
             using var con = new NpgsqlConnection(connStr);
-            con.ConnectionTimeout = 15;
             con.Open();
 
             var cmd = new NpgsqlCommand(@"
-                SELECT DISTINCT c.company_id, c.company_name
-                FROM users u
-                JOIN companies c ON u.company_id = c.company_id
-                WHERE u.email = @Email
-            ", con);
+            SELECT DISTINCT c.company_id, c.company_name
+            FROM users u
+            JOIN companies c ON u.company_id = c.company_id
+            WHERE u.email = @Email
+        ", con);
 
-            cmd.Parameters.AddWithValue("@Email", email ?? "");
+            cmd.Parameters.AddWithValue("@Email", email);
 
             using var dr = cmd.ExecuteReader();
 
-            var list = new List<object>();
-
             while (dr.Read())
             {
-                list.Add(new
+                companies.Add(new
                 {
                     companyId = dr["company_id"],
                     companyName = dr["company_name"]
                 });
             }
 
-            return Json(list);
+            return Json(companies);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ex.ToString());
+            return StatusCode(500, ex.Message);
         }
+    }
+
+    public IActionResult Logout()
+    {
+        HttpContext.Session.Clear();
+        return RedirectToAction("Index");
     }
 }
