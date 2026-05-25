@@ -174,11 +174,12 @@ public class LoginController : Controller
             con.Open();
 
             var cmd = new NpgsqlCommand(@"
-                SELECT DISTINCT c.company_id, c.company_name
-                FROM users u
-                INNER JOIN companies c ON u.company_id = c.company_id
-                WHERE u.email = @Email
-            ", con);
+    SELECT DISTINCT c.company_id AS companyId,
+                    c.company_name AS companyName
+    FROM users u
+    INNER JOIN companies c ON u.company_id = c.company_id
+    WHERE u.email = @Email
+", con);
 
             cmd.Parameters.AddWithValue("@Email", email);
 
@@ -188,8 +189,8 @@ public class LoginController : Controller
             {
                 companies.Add(new
                 {
-                    companyId = dr["company_id"],
-                    companyName = dr["company_name"]
+                    companyId = dr["companyId"],
+                    companyName = dr["companyName"]
                 });
             }
         }

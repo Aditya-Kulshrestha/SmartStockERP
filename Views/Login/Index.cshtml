@@ -304,11 +304,11 @@
 
             let companyId = $("#companySelect").val();
 
-            if (!companyId) {
-                showAlert("Please select company", "error");
-                shake($("#loginBox"));
-                return;
-            }
+                    if ($("#companySelect option").length === 0) {
+            showAlert("Enter email first to load companies", "error");
+            shake($("#loginBox"));
+            return;
+        }
 
             $.ajax({
                 url: '/Login/Login',

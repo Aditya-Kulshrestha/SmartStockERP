@@ -169,9 +169,8 @@ namespace SmartStockERP.Controllers
                 con.Open();
 
                 var cmd = new NpgsqlCommand(@"
-    SELECT 
-        company_id AS companyId,
-        company_name AS companyName
+    SELECT company_id AS companyId,
+           company_name AS companyName
     FROM companies
 ", con);
 
@@ -181,8 +180,8 @@ namespace SmartStockERP.Controllers
                 {
                     list.Add(new
                     {
-                        companyId = dr["company_id"],
-                        companyName = dr["company_name"]
+                        companyId = dr["companyId"],
+                        companyName = dr["companyName"]
                     });
                 }
             }
