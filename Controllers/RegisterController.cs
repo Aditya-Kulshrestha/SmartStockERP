@@ -169,9 +169,11 @@ namespace SmartStockERP.Controllers
                 con.Open();
 
                 var cmd = new NpgsqlCommand(@"
-                    SELECT company_id, company_name
-                    FROM companies
-                ", con);
+    SELECT 
+        company_id AS companyId,
+        company_name AS companyName
+    FROM companies
+", con);
 
                 var dr = cmd.ExecuteReader();
 
@@ -225,16 +227,19 @@ namespace SmartStockERP.Controllers
 
                         if ((long)checkCompany.ExecuteScalar() > 0)
                             return BadRequest("Company already exists");
-
                         var insertCompany = new NpgsqlCommand(@"
-                            INSERT INTO companies(company_name, email, phone)
-                            VALUES(@Name, @Email, @Phone)
-                            RETURNING company_id
-                        ", con, tx);
+    INSERT INTO companies(company_name, email, phone)
+    VALUES(@Name, @Email, @Phone)
+    RETURNING company_id
+", con);
+
 
                         insertCompany.Parameters.AddWithValue("@Name", companyName);
-                        insertCompany.Parameters.AddWithValue("@Email", email);
-                        insertCompany.Parameters.AddWithValue("@Phone", phone);
+                        insertCompany.Parameters.AddWithValue("@Email",
+    string.IsNullOrEmpty(email) ? DBNull.Value : email);
+
+                        insertCompany.Parameters.AddWithValue("@Phone",
+                            string.IsNullOrEmpty(phone) ? DBNull.Value : phone);
 
                         finalCompanyId = (int)insertCompany.ExecuteScalar();
                     }
