@@ -160,33 +160,37 @@ namespace SmartStockERP.Controllers
         [HttpGet]
         public IActionResult GetAllCompanies()
         {
-            string connStr = _config.GetConnectionString("DefaultConnection");
-
-            List<object> list = new();
-
-            using (var con = new NpgsqlConnection(connStr))
+            try
             {
+                string connStr = _config.GetConnectionString("DefaultConnection");
+
+                List<object> list = new();
+
+                using var con = new NpgsqlConnection(connStr);
                 con.Open();
 
                 var cmd = new NpgsqlCommand(@"
-    SELECT company_id AS companyId,
-           company_name AS companyName
-    FROM companies
-", con);
+            SELECT company_id, company_name
+            FROM companies
+        ", con);
 
-                var dr = cmd.ExecuteReader();
+                using var dr = cmd.ExecuteReader();
 
                 while (dr.Read())
                 {
                     list.Add(new
                     {
-                        companyId = dr["companyId"],
-                        companyName = dr["companyName"]
+                        companyId = dr["company_id"],
+                        companyName = dr["company_name"]
                     });
                 }
-            }
 
-            return Json(list);
+                return Json(list);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);   // 👈 IMPORTANT
+            }
         }
 
         [HttpPost]
@@ -230,7 +234,7 @@ namespace SmartStockERP.Controllers
     INSERT INTO companies(company_name, email, phone)
     VALUES(@Name, @Email, @Phone)
     RETURNING company_id
-", con);
+", con, tx);
 
 
                         insertCompany.Parameters.AddWithValue("@Name", companyName);

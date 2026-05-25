@@ -113,18 +113,23 @@ public class LoginController : Controller
         {
             string connStr = _config.GetConnectionString("DefaultConnection");
 
+            if (string.IsNullOrEmpty(companyId))
+                return BadRequest("Company is required");
+
+            int cid;
+            if (!int.TryParse(companyId, out cid))
+                return BadRequest("Invalid company id");
+
             using var con = new NpgsqlConnection(connStr);
             con.Open();
 
-            int cid = Convert.ToInt32(companyId);
-
             var cmd = new NpgsqlCommand(@"
             SELECT 
-                u.user_id AS userId,
-                u.company_id AS companyId,
-                u.name AS name,
-                u.role AS role,
-                c.company_name AS companyName
+                u.user_id,
+                u.company_id,
+                u.name,
+                u.role,
+                c.company_name
             FROM users u
             JOIN companies c ON u.company_id = c.company_id
             WHERE u.email = @Email
@@ -141,17 +146,13 @@ public class LoginController : Controller
 
             if (dr.Read())
             {
-                HttpContext.Session.SetString("UserId", dr["userId"].ToString());
-                HttpContext.Session.SetString("CompanyId", dr["companyId"].ToString());
-                HttpContext.Session.SetString("CompanyName", dr["companyName"].ToString());
+                HttpContext.Session.SetString("UserId", dr["user_id"].ToString());
+                HttpContext.Session.SetString("CompanyId", dr["company_id"].ToString());
+                HttpContext.Session.SetString("CompanyName", dr["company_name"].ToString());
                 HttpContext.Session.SetString("Name", dr["name"].ToString());
                 HttpContext.Session.SetString("Role", dr["role"].ToString());
 
-                return Json(new
-                {
-                    success = true,
-                    redirect = "/Dashboard/Index"
-                });
+                return Json(new { success = true, redirect = "/Dashboard/Index" });
             }
 
             return Json(new { success = false, message = "Invalid login" });
@@ -165,37 +166,41 @@ public class LoginController : Controller
     [HttpPost]
     public IActionResult GetCompanies(string email)
     {
-        string connStr = _config.GetConnectionString("DefaultConnection");
-
-        List<object> companies = new();
-
-        using (var con = new NpgsqlConnection(connStr))
+        try
         {
+            string connStr = _config.GetConnectionString("DefaultConnection");
+
+            List<object> companies = new();
+
+            using var con = new NpgsqlConnection(connStr);
             con.Open();
 
             var cmd = new NpgsqlCommand(@"
-    SELECT DISTINCT c.company_id AS companyId,
-                    c.company_name AS companyName
-    FROM users u
-    INNER JOIN companies c ON u.company_id = c.company_id
-    WHERE u.email = @Email
-", con);
+            SELECT DISTINCT c.company_id, c.company_name
+            FROM users u
+            JOIN companies c ON u.company_id = c.company_id
+            WHERE u.email = @Email
+        ", con);
 
             cmd.Parameters.AddWithValue("@Email", email);
 
-            var dr = cmd.ExecuteReader();
+            using var dr = cmd.ExecuteReader();
 
             while (dr.Read())
             {
                 companies.Add(new
                 {
-                    companyId = dr["companyId"],
-                    companyName = dr["companyName"]
+                    companyId = dr["company_id"],
+                    companyName = dr["company_name"]
                 });
             }
-        }
 
-        return Json(companies);
+            return Json(companies);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
     }
 
     public IActionResult Logout()
