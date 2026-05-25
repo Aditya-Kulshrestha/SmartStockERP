@@ -1,0 +1,419 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- DATATABLE CSS -->
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        max-width: 100%;
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        margin-bottom: 5px;
+        transition: 0.2s;
+    }
+
+        .input:focus {
+            border-color: #2f80ed;
+            box-shadow: 0 0 0 3px rgba(47,128,237,0.15);
+            outline: none;
+        }
+
+    .error {
+        color: #e74c3c;
+        font-size: 12px;
+        margin-bottom: 10px;
+        min-height: 16px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        border: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            background: linear-gradient(135deg, #6b7fb2, #4f6396);
+        }
+
+    #alertBox {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        margin-top: 20px;
+    }
+
+    div.dataTables_wrapper div.dataTables_length select {
+        width: 60px;
+        display: inline-block;
+    }
+
+</style>
+
+<h2 class="page-title">Customers</h2>
+
+<!-- FORM -->
+<div class="form-card" id="customerBox">
+
+    <label>Customer Name</label>
+    <input type="text"
+           id="name"
+           class="input"
+           placeholder="Enter customer name" />
+
+    <div class="error" id="nameError"></div>
+
+    <label>Phone</label>
+
+    <input type="text"
+           id="phone"
+           class="input"
+           placeholder="Enter phone number" />
+
+    <div class="error" id="phoneError"></div>
+
+    <label>Email</label>
+
+    <input type="text"
+           id="email"
+           class="input"
+           placeholder="Enter email" />
+
+    <div class="error" id="emailError"></div>
+
+    <button class="btn btn-primary w-100"
+            onclick="saveCustomer()">
+
+        Save Customer
+
+    </button>
+
+</div>
+
+<!-- TABLE -->
+<div class="table-card">
+
+    <table id="customerTable"
+           class="table table-bordered table-striped">
+
+        <thead>
+            <tr>
+                <th>Sr No</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th width="180">Action</th>
+            </tr>
+        </thead>
+
+        <tbody></tbody>
+
+    </table>
+
+</div>
+
+<!-- ALERT -->
+<div id="alertBox" class="alert shadow"></div>
+
+<!-- JQUERY -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DATATABLE -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+
+    let table;
+
+    /* ALERT */
+    function showAlert(msg, type = "success") {
+
+        let box = $("#alertBox");
+
+        box.stop(true, true)
+            .removeClass("alert-success alert-danger alert-warning")
+            .addClass("alert");
+
+        if (type === "error")
+            box.addClass("alert-danger");
+
+        else if (type === "warning")
+            box.addClass("alert-warning");
+
+        else
+            box.addClass("alert-success");
+
+        box.text(msg)
+            .fadeIn(200)
+            .delay(1500)
+            .fadeOut(200);
+    }
+
+    /* SHAKE */
+    function shake(el) {
+
+        el.stop(true, true)
+            .animate({ marginLeft: "-10px" }, 50)
+            .animate({ marginLeft: "10px" }, 50)
+            .animate({ marginLeft: "-8px" }, 50)
+            .animate({ marginLeft: "8px" }, 50)
+            .animate({ marginLeft: "0px" }, 50);
+    }
+
+    /* VALIDATION */
+    function validateName() {
+
+        let v = $("#name").val().trim();
+
+        if (v === "") {
+            $("#nameError").text("Customer name required");
+            return false;
+        }
+
+        $("#nameError").text("");
+        return true;
+    }
+
+    function validatePhone() {
+
+        let v = $("#phone").val().trim();
+
+        if (v === "" || v.length < 10) {
+            $("#phoneError").text("Valid phone required");
+            return false;
+        }
+
+        $("#phoneError").text("");
+        return true;
+    }
+
+    function validateEmail() {
+
+        let v = $("#email").val().trim();
+
+        let regex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+
+        if (v === "" || !regex.test(v)) {
+            $("#emailError").text("Valid email required");
+            return false;
+        }
+
+        $("#emailError").text("");
+        return true;
+    }
+
+    $("#name").on("keyup blur", validateName);
+    $("#phone").on("keyup blur", validatePhone);
+    $("#email").on("keyup blur", validateEmail);
+
+    /* SAVE CUSTOMER */
+    function saveCustomer() {
+
+        let v1 = validateName();
+        let v2 = validatePhone();
+        let v3 = validateEmail();
+
+        if (!v1 || !v2 || !v3) {
+
+            shake($("#customerBox"));
+
+            showAlert("Fix validation errors", "warning");
+
+            return;
+        }
+
+        let id = $("#name").attr("data-id");
+
+        let url = id
+            ? '/Customers/Update'
+            : '/Customers/Add';
+
+        $.ajax({
+
+            url: url,
+            type: 'POST',
+
+            data: {
+
+                id: id || 0,
+                name: $("#name").val().trim(),
+                phone: $("#phone").val().trim(),
+                email: $("#email").val().trim()
+            },
+
+            success: function () {
+
+                showAlert(
+                    id ? "Customer updated" : "Customer added"
+                );
+
+                resetForm();
+
+                loadCustomers();
+            },
+
+            error: function () {
+
+                shake($("#customerBox"));
+
+                showAlert("Something went wrong", "error");
+            }
+        });
+    }
+
+    /* LOAD CUSTOMERS */
+    function loadCustomers() {
+
+        $.ajax({
+
+            url: '/Customers/GetAll',
+            type: 'GET',
+
+            success: function (res) {
+
+                if ($.fn.DataTable.isDataTable('#customerTable')) {
+
+                    table.destroy();
+                }
+
+                let html = "";
+                let index = 1;
+
+                res.forEach(c => {
+
+                    html += `
+                        <tr>
+                            <td>${index++}</td>
+                            <td>${c.name}</td>
+                            <td>${c.phone}</td>
+                            <td>${c.email}</td>
+
+                            <td>
+
+                                <button class="btn btn-warning btn-sm"
+                                        onclick="editCustomer(${c.customerId})">
+
+                                    Edit
+
+                                </button>
+
+                                <button class="btn btn-danger btn-sm"
+                                        onclick="deleteCustomer(${c.customerId})">
+
+                                    Delete
+
+                                </button>
+
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                $("#customerTable tbody").html(html);
+
+                table = $('#customerTable').DataTable({
+
+                    pageLength: 5,
+
+                    lengthMenu: [5, 10, 25, 50],
+
+                    destroy: true
+                });
+            }
+        });
+    }
+
+    /* EDIT */
+    function editCustomer(id) {
+
+        $.get('/Customers/GetById',
+            { id: id },
+
+            function (c) {
+
+                $("#name").val(c.name);
+                $("#phone").val(c.phone);
+                $("#email").val(c.email);
+
+                $("#name").attr("data-id", c.customerId);
+
+                showAlert("Edit mode enabled", "warning");
+            });
+    }
+
+    /* DELETE */
+    function deleteCustomer(id) {
+
+        if (!confirm("Delete this customer?"))
+            return;
+
+        $.post('/Customers/Delete',
+            { id: id },
+
+            function () {
+
+                showAlert("Customer deleted");
+
+                loadCustomers();
+            });
+    }
+
+    /* RESET */
+    function resetForm() {
+
+        $("#name,#phone,#email").val("");
+
+        $("#name").removeAttr("data-id");
+    }
+
+    $(document).ready(function () {
+
+        loadCustomers();
+    });
+
+</script>

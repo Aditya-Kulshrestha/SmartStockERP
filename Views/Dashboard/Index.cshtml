@@ -1,0 +1,248 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@{
+    var role = ViewBag.Role;
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        transition: 0.25s;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+
+    .stats-icon {
+        font-size: 28px;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        color: white;
+        margin-bottom: 12px;
+    }
+
+    .blue {
+        background: linear-gradient(135deg, #2f80ed, #1f3c88);
+    }
+
+    .green {
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+    }
+
+    .red {
+        background: linear-gradient(135deg, #dc3545, #a71d2a);
+    }
+
+    .Yellow {
+        background: linear-gradient(135deg, #f7ff7d, #b8d131);
+    }
+
+    .Brown {
+        background: linear-gradient(135deg, #e33f00, #e33f00);
+    }
+
+    .stats-title {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .stats-value {
+        font-size: 26px;
+        font-weight: bold;
+        color: #222;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+</style>
+
+<h2 class="page-title">Dashboard Overview</h2>
+
+@if (role != null && role == "Admin")
+{
+    <div class="alert alert-primary">
+        🧠 Admin Dashboard - Full System Access Enabled
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        👤 Staff Dashboard - Limited Access Mode
+    </div>
+}
+
+<div class="grid">
+
+    @if (Context.Session.GetString("Role") == "Admin")
+    {
+        <!-- Products Card -->
+        <!-- PRODUCTS -->
+        <div class="stats-card">
+
+            <div class="stats-icon blue">📦</div>
+
+            <div class="stats-title">Total Products</div>
+
+            <div class="stats-value" id="products">0</div>
+
+        </div>
+        <!-- Revenue Card -->
+        <!-- Revenue -->
+        <div class="stats-card">
+
+            <div class="stats-icon Brown">↗</div>
+
+            <div class="stats-title">Revenue</div>
+
+            <div class="stats-value" id="revenue">0</div>
+
+        </div>
+    }
+
+
+
+    <!-- SALES -->
+    <div class="stats-card">
+
+        <div class="stats-icon green">📊</div>
+
+        <div class="stats-title">Total Sales</div>
+
+        <div class="stats-value" id="sales">0</div>
+
+    </div>
+
+    <!-- Invoices -->
+    <div class="stats-card">
+
+        <div class="stats-icon Yellow">🧾</div>
+
+        <div class="stats-title">Invoices</div>
+
+        <div class="stats-value" id="invoices">0</div>
+
+    </div>
+
+    <!-- LOW STOCK -->
+   @*  <div class="stats-card">
+
+        <div class="stats-icon red">⚠️</div>
+
+        <div class="stats-title">Low Stock Items</div>
+
+        <div class="stats-value" id="lowStock">0</div>
+
+    </div> *@
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-md-8">
+
+        <div class="stats-card">
+
+            <h5>Monthly Sales</h5>
+
+            <canvas id="salesChart"></canvas>
+
+        </div>
+
+    </div>
+
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+
+    $(document).ready(function () {
+
+        $.ajax({
+            url: '/Dashboard/GetStats',
+            type: 'GET',
+                   success: function (res) {
+
+        $("#sales").text(res.sales);
+        $("#invoices").text(res.sales);
+
+        // STAFF RESTRICTION (NEW)
+        var role = '@Context.Session.GetString("Role")';
+
+        if (role === "Admin") {
+
+            $("#revenue").text("₹ " + res.revenue);
+            $("#products").text(res.products);
+
+            $("#lowStock").text(res.lowStock);
+        }
+        else {
+
+            // STAFF SAFE VIEW
+            $("#revenue").closest('.stats-card').hide();
+            $("#products").closest('.stats-card').hide();
+        }
+    }
+        });
+
+    });
+
+        $.get('/Dashboard/MonthlySales', function (res) {
+
+        new Chart(document.getElementById('salesChart'), {
+
+            type: 'bar',
+
+            data: {
+
+                labels: res.months,
+
+                datasets: [{
+
+                    label: 'Sales',
+
+                    data: res.totals,
+
+                    backgroundColor: '#6c8bc7'
+                }]
+            }
+        });
+    });
+
+        $(document).ready(function () {
+
+        var role = '@Context.Session.GetString("Role")';
+
+        if (role !== "Admin") {
+            $("#stockAlert").hide();   // STAFF HIDE ALERT
+        }
+    });
+
+</script>

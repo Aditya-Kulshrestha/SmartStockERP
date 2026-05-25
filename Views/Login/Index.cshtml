@@ -1,0 +1,373 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8" />
+    <title>SmartStock ERP - Login</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI';
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background: #f4f7fb;
+        }
+
+        .left {
+            flex: 1;
+            background: linear-gradient(135deg, #bfcbea, #809cc2);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .brand {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            line-height: 1.7;
+            opacity: 0.95;
+            max-width: 520px;
+        }
+
+        .right {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f5f7fb;
+        }
+
+        .login-box {
+            width: 400px;
+            background: white;
+            padding: 40px;
+            border-radius: 18px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.10);
+        }
+
+            .login-box h2 {
+                margin-bottom: 8px;
+            }
+
+        .login-subtitle {
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dcdcdc;
+            border-radius: 10px;
+            margin-bottom: 5px;
+        }
+
+            .input:focus {
+                outline: none;
+                border-color: #2f80ed;
+                box-shadow: 0 0 0 3px rgba(47,128,237,0.15);
+            }
+
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            min-height: 18px;
+            margin-bottom: 10px;
+        }
+
+        .login-btn {
+            width: 100%;
+            border: none;
+            padding: 13px;
+            background: linear-gradient(135deg, #bfcbea, #809cc2);
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+            .login-btn:hover {
+                background: linear-gradient(135deg, #5871b1, #809cc2);
+            }
+
+        #alertBox {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 320px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="left">
+
+        <div class="brand">
+            SmartStock ERP
+        </div>
+
+        <div class="subtitle">
+            Manage inventory, billing, purchases and reports
+            in one powerful ERP solution.
+        </div>
+
+    </div>
+
+    <div class="right">
+
+        <div class="login-box" id="loginBox">
+
+            <h2>Welcome Back</h2>
+
+            <div class="login-subtitle">
+                Sign in to continue
+            </div>
+
+            <label>Email Address</label>
+
+            <input type="text"
+                   id="email"
+                   class="input"
+                   placeholder="Enter your email" />
+
+            <div class="error" id="emailError"></div>
+
+            <div id="companyBox" style="display:none;">
+
+                <label>Select Company</label>
+
+                <select id="companySelect" class="input"></select>
+
+            </div>
+
+            <label>Password</label>
+
+            <input type="password"
+                   id="password"
+                   class="input"
+                   placeholder="Enter your password" />
+
+            <div class="error" id="passwordError"></div>
+
+            <button class="login-btn"
+                    onclick="login()">
+
+                Login
+
+            </button>
+
+            <div style="margin-top:15px;text-align:center;">
+
+                Don't have an account?
+
+                <a href="/Register/Index">
+                    Register Company
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="alertBox"
+         class="alert shadow">
+    </div>
+
+    <script>
+
+        function isValidEmail(email) {
+
+            return /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email);
+        }
+
+        function validateEmail() {
+
+            let email = $("#email").val().trim();
+
+            if (email === "") {
+
+                $("#emailError").text("Email required");
+                return false;
+            }
+
+            if (!isValidEmail(email)) {
+
+                $("#emailError").text("Invalid email");
+                return false;
+            }
+
+            $("#emailError").text("");
+            return true;
+        }
+
+        function validatePassword() {
+
+            let password = $("#password").val().trim();
+
+            if (password === "") {
+
+                $("#passwordError").text("Password required");
+                return false;
+            }
+
+            $("#passwordError").text("");
+            return true;
+        }
+
+        // LIVE VALIDATION
+
+        $("#email").on("keyup blur", validateEmail);
+
+        $("#password").on("keyup blur", validatePassword);
+
+        // ALERT
+
+        function showAlert(msg, type = "success") {
+
+            let box = $("#alertBox");
+
+            box.removeClass("alert-success alert-danger");
+
+            if (type === "error") {
+
+                box.addClass("alert-danger");
+            }
+            else {
+
+                box.addClass("alert-success");
+            }
+
+            box.text(msg)
+                .fadeIn(200)
+                .delay(2000)
+                .fadeOut(200);
+        }
+
+        // SHAKE EFFECT
+
+        function shake(element) {
+
+            element.stop(true, true)
+                .animate({ marginLeft: "-10px" }, 50)
+                .animate({ marginLeft: "10px" }, 50)
+                .animate({ marginLeft: "-8px" }, 50)
+                .animate({ marginLeft: "8px" }, 50)
+                .animate({ marginLeft: "0px" }, 50);
+        }
+
+                function login() {
+
+            let validEmail = validateEmail();
+            let validPassword = validatePassword();
+
+            if (!validEmail || !validPassword) {
+                shake($("#loginBox"));
+                return;
+            }
+
+            let companyId = $("#companySelect").val();
+
+            if (!companyId) {
+                showAlert("Please select company", "error");
+                shake($("#loginBox"));
+                return;
+            }
+
+            $.ajax({
+                url: '/Login/Login',
+                type: 'POST',
+                data: {
+                    email: $("#email").val().trim(),
+                    password: $("#password").val().trim(),
+                    companyId: companyId
+                },
+                success: function (res) {
+
+                    if (res && res.success) {
+
+                        showAlert("Login successful");
+
+                        setTimeout(function () {
+                            window.location.href = res.redirect;
+                        }, 800);
+                    }
+                    else {
+                        shake($("#loginBox"));
+                        showAlert(res.message || "Login failed", "error");
+                    }
+                }
+            });
+        }
+
+    </script>
+
+    <script>
+        $("#companySelect").focus();
+
+               $("#email").on("blur", function () {
+
+            let email = $("#email").val().trim();
+
+            if (email === "" || !isValidEmail(email)) return;
+
+            $.post('/Login/GetCompanies', { email: email }, function (res) {
+
+                if (res && res.length > 0) {
+
+                    $("#companySelect").empty();
+
+                    res.forEach(c => {
+                        $("#companySelect").append(
+                            `<option value="${c.companyId}">${c.companyName}</option>`
+                        );
+                    });
+
+                    $("#companyBox").show();
+                }
+                else {
+                    $("#companyBox").hide();
+                }
+            });
+        });
+
+    </script>
+
+</body>
+</html>

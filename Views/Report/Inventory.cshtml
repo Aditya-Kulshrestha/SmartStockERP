@@ -1,0 +1,405 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- CHART -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- DATATABLE -->
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css" />
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<style>
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .report-card {
+        background: white;
+        border-radius: 18px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        margin-bottom: 25px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .summary-box {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+        transition: 0.3s;
+    }
+
+        .summary-box:hover {
+            transform: translateY(-5px);
+        }
+
+    .summary-title {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .summary-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #1f3c88;
+    }
+
+    table {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+        table th {
+            background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+            color: white;
+            border: none !important;
+            padding: 14px !important;
+        }
+
+        table td {
+            vertical-align: middle;
+            padding: 12px !important;
+        }
+
+    .low-stock {
+        background: #ffe5e5 !important;
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .chart-box {
+        background: white;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    /* DATATABLE */
+
+    .dataTables_wrapper {
+        margin-top: 15px;
+    }
+
+    .dataTables_filter input {
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        padding: 5px 10px;
+    }
+
+    .dt-buttons button {
+        background: linear-gradient(135deg, #2f80ed, #1f3c88) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 6px 14px !important;
+        margin-right: 5px !important;
+    }
+
+    .dataTables_paginate .paginate_button.current {
+        background: #2f80ed !important;
+        color: white !important;
+        border-radius: 6px !important;
+    }
+
+</style>
+
+<h2 class="page-title">
+    Inventory Stock Report
+</h2>
+
+<!-- SUMMARY -->
+
+<div class="summary-grid">
+
+    <div class="summary-box">
+        <div class="summary-title">Total Products</div>
+        <div class="summary-value" id="totalProducts">0</div>
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-title">Total Stock</div>
+        <div class="summary-value" id="totalStock">0</div>
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-title">Inventory Value</div>
+        <div class="summary-value" id="inventoryValue">₹ 0</div>
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-title">Low Stock Items</div>
+        <div class="summary-value text-danger" id="lowStock">0</div>
+    </div>
+
+</div>
+
+<!-- TABLE -->
+
+<div class="report-card">
+
+    <div class="table-responsive">
+
+        <table class="table table-hover table-bordered"
+               id="tbl"
+               width="100%">
+
+            <thead>
+
+                <tr>
+                    <th>Product</th>
+                    <th>Stock Qty</th>
+                    <th>Cost Price</th>
+                    <th>Sale Price</th>
+                    <th>Total Value</th>
+                    <th>Unit</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+            <tbody></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- CHART -->
+
+<div class="chart-box">
+
+    <h4 style="margin-bottom:20px;">
+        📊 Stock Quantity Graph
+    </h4>
+
+    <canvas id="stockChart" height="100"></canvas>
+
+</div>
+
+<script>
+
+    let stockChart;
+
+    $(document).ready(function () {
+
+        loadInventory();
+
+    });
+
+    function loadInventory() {
+
+        $.ajax({
+
+            url: '/Report/GetInventory',
+            type: 'GET',
+
+            success: function (res) {
+
+                let rows = "";
+
+                let labels = [];
+                let stockData = [];
+
+                let totalProducts = 0;
+                let totalStock = 0;
+                let inventoryValue = 0;
+                let lowStock = 0;
+
+                res.forEach(p => {
+
+                    totalProducts++;
+
+                    totalStock += p.stock;
+
+                    inventoryValue += p.stockValue;
+
+                    let status = `
+                        <span class="badge bg-success">
+                            In Stock
+                        </span>
+                    `;
+
+                    let rowClass = "";
+
+                    if (p.stock < 5) {
+
+                        lowStock++;
+
+                        status = `
+                            <span class="badge bg-danger">
+                                Low Stock
+                            </span>
+                        `;
+
+                        rowClass = "low-stock";
+                    }
+
+                    rows += `
+                        <tr class="${rowClass}">
+                            <td>${p.productName}</td>
+                            <td>${p.stock}</td>
+                            <td>₹ ${p.costPrice}</td>
+                            <td>₹ ${p.price}</td>
+                            <td>₹ ${p.stockValue}</td>
+                            <td>${p.unit}</td>
+                            <td>${status}</td>
+                        </tr>
+                    `;
+
+                    labels.push(p.productName);
+                    stockData.push(p.stock);
+
+                });
+
+                // TABLE DATA
+
+                $("#tbl tbody").html(rows);
+
+                // SUMMARY
+
+                $("#totalProducts").text(totalProducts);
+
+                $("#totalStock").text(totalStock);
+
+                $("#inventoryValue").text(
+                    "₹ " + inventoryValue.toFixed(2)
+                );
+
+                $("#lowStock").text(lowStock);
+
+                // DESTROY DATATABLE IF EXISTS
+
+                if ($.fn.DataTable.isDataTable('#tbl')) {
+
+                    $('#tbl').DataTable().destroy();
+                }
+
+                // INIT DATATABLE
+
+                $('#tbl').DataTable({
+
+                    pageLength: 10,
+
+                    responsive: true,
+
+                    lengthMenu: [10, 25, 50, 100],
+
+                    dom: 'Bfrtip',
+
+                    buttons: [
+
+                        {
+                            extend: 'excel',
+                            text: 'Export Excel'
+                        },
+
+                        {
+                            extend: 'pdf',
+                            text: 'Export PDF'
+                        },
+
+                        {
+                            extend: 'print',
+                            text: 'Print'
+                        }
+                    ],
+
+                    order: [[1, 'desc']]
+                });
+
+                // CHART DESTROY
+
+                if (stockChart) {
+                    stockChart.destroy();
+                }
+
+                // CHART
+
+                stockChart = new Chart(
+                    document.getElementById('stockChart'),
+                    {
+
+                        type: 'bar',
+
+                        data: {
+
+                            labels: labels,
+
+                            datasets: [{
+
+                                label: 'Stock Quantity',
+
+                                data: stockData,
+
+                                borderRadius: 8,
+
+                                backgroundColor: [
+
+                                    '#2f80ed',
+                                    '#27ae60',
+                                    '#f39c12',
+                                    '#e74c3c',
+                                    '#8e44ad',
+                                    '#16a085',
+                                    '#d35400',
+                                    '#2c3e50',
+                                    '#7f8c8d'
+                                ]
+                            }]
+                        },
+
+                        options: {
+
+                            responsive: true,
+
+                            plugins: {
+
+                                legend: {
+                                    display: true
+                                }
+                            },
+
+                            scales: {
+
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+            }
+        });
+    }
+
+</script>

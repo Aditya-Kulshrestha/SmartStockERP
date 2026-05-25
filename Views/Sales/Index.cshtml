@@ -1,0 +1,471 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        max-width: 100%;
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        margin-bottom: 5px;
+        transition: 0.2s;
+    }
+
+        .input:focus {
+            border-color: #2f80ed;
+            box-shadow: 0 0 0 3px rgba(47,128,237,0.15);
+            outline: none;
+        }
+
+    .error {
+        color: #e74c3c;
+        font-size: 12px;
+        margin-bottom: 10px;
+        min-height: 16px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        border: none;
+        padding: 6px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            background: linear-gradient(135deg, #6b7fb2, #4f6396);
+        }
+
+    .btn-success {
+        background: linear-gradient(121deg, #a4dab0, #509c63);
+        border: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-success:hover {
+        opacity: 0.9;
+        background: linear-gradient(121deg, #5d996a, #4e875c);
+    }
+
+    #alertBox {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+    }
+
+    .item-row {
+        background: #f9fbff;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #eef2ff;
+    }
+
+    div.dataTables_wrapper div.dataTables_length select {
+        width: 60px;
+        display: inline-block;
+    }
+
+</style>
+
+<h2 class="page-title">Sales Entry</h2>
+
+<div class="form-card" id="saleBox">
+
+    <label>Customer</label>
+    <select id="customerId" class="input">
+        <option value="">Select Customer</option>
+    </select>
+    <div class="error" id="customerError"></div>
+
+    <hr />
+
+    <label>Products</label>
+
+    <div id="items"></div>
+
+    <button class="btn btn-primary mt-2" onclick="addRow()">
+        + Add Product
+    </button>
+
+    <br /><br />
+
+    <button class="btn btn-success w-100" onclick="saveSale()">
+        Save Sale
+    </button>
+
+</div>
+
+<hr />
+
+<div class="form-card mt-3">
+
+    <table id="salesTable"
+           class="table table-bordered table-striped">
+
+        <thead>
+            <tr>
+                <th>Sr No</th>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody></tbody>
+
+    </table>
+
+</div>
+
+<!-- ALERT -->
+<div id="alertBox" class="alert shadow"></div>
+
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+
+
+        let saleTable;
+
+    $(document).ready(function () {
+
+        loadCustomers();
+        loadSales();
+        loadProductsCache();
+    });
+
+    function loadSales() {
+
+        $.get('/Sales/GetSales', function (data) {
+
+            if ($.fn.DataTable.isDataTable('#salesTable')) {
+                saleTable.destroy();
+            }
+
+            let html = "";
+
+            let index = 1;
+
+            data.forEach(s => {
+
+                html += `
+                    <tr>
+                        <td>${index++}</td>
+                        <td>${s.invoiceNo}</td>
+                        <td>${s.customer}</td>
+                        <td>₹ ${s.total}</td>
+                        <td>${s.date}</td>
+
+                        <td>
+
+                            <a href="/Sales/InvoicePdf/${s.saleId}"
+                               class="btn btn-sm btn-primary">
+                               PDF
+                            </a>
+
+                            <button class="btn btn-danger btn-sm"
+                                    onclick="deleteSale(${s.saleId})">
+                                    Delete
+                            </button>
+
+                        </td>
+                    </tr>
+                `;
+            });
+
+                $("#salesTable tbody").html(html);
+
+            // SAFE INIT (IMPORTANT FIX)
+            if ($.fn.DataTable.isDataTable('#salesTable')) {
+                $('#salesTable').DataTable().destroy();
+            }
+
+            $('#salesTable').DataTable({
+                pageLength: 5,
+                lengthMenu: [5,10,25,50,100]
+            });
+
+        });
+    }
+
+    function deleteSale(id) {
+
+        if (!confirm("Delete this sale?")) return;
+
+        $.post('/Sales/DeleteSale', { id }, function () {
+
+            showAlert("Sale deleted");
+
+            loadSales();
+        });
+    }
+
+    /* ALERT SYSTEM (same as product page) */
+    function showAlert(msg, type = "success") {
+
+        let box = $("#alertBox");
+
+        box.stop(true, true)
+            .removeClass("alert-success alert-danger alert-warning")
+            .addClass("alert");
+
+        if (type === "error") box.addClass("alert-danger");
+        else if (type === "warning") box.addClass("alert-warning");
+        else box.addClass("alert-success");
+
+        box.text(msg)
+            .fadeIn(200)
+            .delay(1500)
+            .fadeOut(200);
+    }
+
+    /* SHAKE */
+    function shake(el) {
+        el.stop(true, true)
+            .animate({ marginLeft: "-10px" }, 50)
+            .animate({ marginLeft: "10px" }, 50)
+            .animate({ marginLeft: "-8px" }, 50)
+            .animate({ marginLeft: "8px" }, 50)
+            .animate({ marginLeft: "0px" }, 50);
+    }
+
+          
+
+    /* VALIDATION */
+       function validateSale() {
+
+        let ok = true;
+
+       if (!$("#customerId").val()) {
+            $("#customerError").text("Customer required");
+            ok = false;
+        } else {
+            $("#customerError").text("");
+        }
+
+        if ($(".itemRow").length === 0) {
+            showAlert("Add at least one product", "warning");
+            return false;
+        }
+
+        $(".itemRow").each(function () {
+
+            let pid = $(this).find(".pid").val();
+            let qty = $(this).find(".qty").val();
+
+            if (!pid) {
+                $(this).find(".pidError").text("Select product");
+                ok = false;
+            } else {
+                $(this).find(".pidError").text("");
+            }
+
+            if (!qty || parseInt(qty) <= 0) {
+                $(this).find(".qtyError").text("Invalid qty");
+                ok = false;
+            } else {
+                $(this).find(".qtyError").text("");
+            }
+        });
+
+        return ok;
+    }
+
+    /* SAVE SALE */
+            function saveSale() {
+
+        if (!validateSale()) {
+            shake($("#saleBox"));
+            showAlert("Fix validation errors", "warning");
+            return;
+        }
+
+        let items = [];
+
+        $(".itemRow").each(function () {
+
+            items.push({
+                productId: parseInt($(this).find(".pid").val()),
+                qty: parseInt($(this).find(".qty").val())
+            });
+        });
+
+        $.ajax({
+            url: '/Sales/CreateSale',
+            type: 'POST',
+            data: {
+                customerId: $("#customerId").val(),
+                items: JSON.stringify(items)
+            },
+            success: function (res) {
+                showAlert("Sale created. Invoice: " + res.invoiceNo);
+                $("#items").html("");
+                loadSales();
+            }
+        });
+    }
+
+
+        function loadCustomers() {
+
+        $.get('/Sales/GetCustomerDropdown', function (data) {
+
+            let html = `<option value="">Select Customer</option>`;
+
+            data.forEach(c => {
+
+                html += `
+                    <option value="${c.id}">
+                        ${c.name}
+                    </option>
+                `;
+            });
+
+            $("#customerId").html(html);
+        });
+    }
+
+</script>
+
+@section Scripts {
+    <script>
+
+                      $(document).on("change", ".pid", function () {
+
+            let pid = $(this).val();
+
+            let product = productCache.find(x => x.id == pid);
+
+            let box = $(this).closest(".itemRow").find(".productInfo");
+
+            if (product) {
+
+                box.html(`
+                    Category: <b>${product.category}</b>
+                    | Unit: <b>${product.unit}</b>
+                    | Available Stock: <b>${product.stock}</b>
+                    | Price: <b>₹${product.price}</b>
+                `);
+            }
+            else {
+                box.html("");
+            }
+        });
+         
+
+        function addRow() {
+
+                           if (productCache.length === 0) {
+            showAlert("Products loading... please wait", "warning");
+            return;
+        }
+
+        let row = $(`
+            <div class="row item-row itemRow align-items-end">
+
+                    <div class="col-md-5">
+            <label>Product</label>
+
+            <select class="input pid"></select>
+
+            <small class="text-muted productInfo"></small>
+
+            <div class="error pidError"></div>
+        </div>
+
+            <div class="col-md-5">
+                <label>Quantity</label>
+                <input type="number" class="input qty">
+                <div class="error qtyError"></div>
+            </div>
+
+            <div class="col-md-2">
+                <button type="button"
+                        class="btn btn-danger w-100"
+                        onclick="$(this).closest('.itemRow').remove()">
+                    Cancel (X)
+                </button>
+            </div>
+
+        </div>
+        `);
+
+            $("#items").append(row);
+            loadProductsDropdown(row);
+        }
+                     function loadProductsDropdown(row) {
+
+            let ddl = row.find(".pid");
+
+            ddl.html(`<option value="">Select Product</option>`);
+
+            productCache.forEach(p => {
+
+                ddl.append(`
+                    <option value="${p.id}">
+                        ${p.name}
+                        | ${p.category}
+                        | Stock: ${p.stock}
+                        | Unit: ${p.unit}
+                        | ₹${p.price}
+                    </option>
+                `);
+            });
+        }
+
+        let productCache = [];
+                       function loadProductsCache() {
+
+            $.get('/Sales/GetDropdown', function (data) {
+
+                console.log(data);
+
+                productCache = data;
+            });
+
+        }
+
+    </script>
+
+}

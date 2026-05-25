@@ -1,0 +1,506 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- DATA TABLE CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        max-width: 100%;
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        margin-bottom: 5px;
+        transition: 0.2s;
+    }
+
+        .input:focus {
+            border-color: #2f80ed;
+            box-shadow: 0 0 0 3px rgba(47,128,237,0.15);
+            outline: none;
+        }
+
+    .error {
+        color: #e74c3c;
+        font-size: 12px;
+        margin-bottom: 10px;
+        min-height: 16px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        border: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+    #alertBox {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+    }
+
+    div.dataTables_wrapper div.dataTables_length select {
+        /* width: auto; */
+        width: 50px;
+        display: inline-block;
+    }
+
+</style>
+
+<h2 class="page-title">Products</h2>
+<input type="hidden" id="productId" />
+<div class="form-card" id="productBox">
+
+    <label>Product Name</label>
+    <input type="text" id="name" class="input" placeholder="Enter Product Name"/>
+    <div class="error" id="nameError"></div>
+
+    <label>Stock Keeping Unit</label>
+    <input type="text" id="sku" class="input" placeholder="Enter Stock Keeping Unit" />
+    <div class="error" id="skuError"></div>
+
+    <label>Cost Price</label>
+    <input type="number" id="costPrice" class="input" placeholder="Enter Cost Price" />
+    <div class="error" id="costPriceError"></div>
+
+    <label>Price</label>
+    <input type="number" id="price" class="input" placeholder="Enter Price" />
+    <div class="error" id="priceError"></div>
+
+    <label>Stock Quantity</label>
+    <input type="number" id="qty" class="input" placeholder="Enter Stock Quatity" />
+    <div class="error" id="qtyError"></div>
+
+    <label>Category</label>
+
+    <div style="display:flex; gap:10px;">
+
+        <select id="categoryName" class="form-control">
+        </select>
+
+        <button type="button"
+                class="btn btn-success"
+                onclick="showCategoryBox()">
+            +
+        </button>
+
+    </div>
+
+    <div class="error" id="categoryError"></div>
+
+    <div id="categoryBox"
+         style="display:none; margin-top:15px;">
+
+        <input type="text"
+               id="newCategory"
+               class="form-control"
+               placeholder="Enter New Category" />
+
+        <button class="btn btn-primary mt-2"
+                type="button"
+                onclick="addCategory()">
+
+            Save Category
+
+        </button>
+
+    </div>
+
+    <label>Unit</label>
+
+    <select id="unit" class="form-control">
+
+        <option value="Piece">Piece</option>
+        <option value="KG">KG</option>
+        <option value="Gram">Gram</option>
+        <option value="Litre">Litre</option>
+        <option value="ML">ML</option>
+        <option value="Box">Box</option>
+        <option value="Packet">Packet</option>
+
+    </select>
+
+    <div class="error" id="qtyUnit"></div>
+
+    <button class="btn btn-primary mt-2" onclick="addProduct()">
+        + Add Product
+    </button>
+
+</div>
+
+<hr />
+
+<table id="productTable" class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Sr No</th>
+            <th>Name</th>
+            <th>SKU</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Unit</th>
+            <th>CostPrice</th>
+            <th>Category</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div id="alertBox" class="alert shadow"></div>
+
+<!-- JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DATATABLE JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+
+    let table; // global datatable
+
+    function showAlert(msg, type = "success") {
+
+        let box = $("#alertBox");
+
+        box.removeClass("alert-success alert-danger alert-warning")
+            .addClass("alert");
+
+        if (type === "error") box.addClass("alert-danger");
+        else if (type === "warning") box.addClass("alert-warning");
+        else box.addClass("alert-success");
+
+        box.text(msg).fadeIn(200).delay(1500).fadeOut(200);
+    }
+
+    /* VALIDATION (same as before) */
+    function validateName() {
+        let v = $("#name").val().trim();
+        if (v === "") { $("#nameError").text("Product name required"); return false; }
+        $("#nameError").text(""); return true;
+    }
+
+    function validateSku() {
+        let v = $("#sku").val().trim();
+        if (v === "") { $("#skuError").text("SKU required"); return false; }
+        $("#skuError").text(""); return true;
+    }
+
+    function validatePrice() {
+        let v = $("#price").val().trim();
+        if (v === "" || parseFloat(v) <= 0) { $("#priceError").text("Valid price required"); return false; }
+        $("#priceError").text(""); return true;
+    }
+
+    function validateQty() {
+        let v = $("#qty").val().trim();
+        if (v === "" || parseInt(v) < 0) { $("#qtyError").text("Valid stock required"); return false; }
+        $("#qtyError").text(""); return true;
+    }
+
+        function validateUnit() {
+        let v = $("#unit").val().trim();
+
+        if (v === "") {
+            $("#qtyUnit").text("Valid Unit required");
+            return false;
+        }
+
+        $("#qtyUnit").text("");
+        return true;
+    }
+
+    function shake(el) {
+        el.stop(true, true)
+            .animate({ marginLeft: "-10px" }, 50)
+            .animate({ marginLeft: "10px" }, 50)
+            .animate({ marginLeft: "-8px" }, 50)
+            .animate({ marginLeft: "8px" }, 50)
+            .animate({ marginLeft: "0px" }, 50);
+    }
+
+    /* INIT DATATABLE */
+    function initTable() {
+
+        table = $('#productTable').DataTable({
+            pageLength: 5,
+            lengthMenu: [5, 10, 25, 50],
+            destroy: true
+        });
+    }
+
+    /* LOAD PRODUCTS */
+    function loadProducts() {
+
+        $.ajax({
+            url: '/Product/GetAll',
+            type: 'GET',
+            success: function (data) {
+
+                if ($.fn.DataTable.isDataTable('#productTable')) {
+                    table.destroy();
+                }
+
+                let rows = "";
+                let index = 1;
+
+                data.forEach(p => {
+
+                    rows += `
+                        <tr>
+                            <td>${index++}</td>
+                            <td>${p.productName}</td>
+                            <td>${p.sku}</td>
+                            <td>${p.price}</td>
+                            <td>${p.stockQty}</td>
+                            <td>${p.unit}</td>
+                            <td>${p.costPrice}</td>
+                            <td>${p.category}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" onclick="editProduct(${p.productId})">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.productId})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                $("#productTable tbody").html(rows);
+
+                initTable();
+            }
+        });
+    }
+
+        function validateCategory() {
+
+        let v = $("#categoryName").val();
+
+        if (v === "") {
+
+            $("#categoryError").text("Category required");
+
+            return false;
+        }
+
+        $("#categoryError").text("");
+
+        return true;
+    }
+
+
+        function loadCategories() {
+
+        let staticCategories = [
+
+            "Electronics",
+            "Grocery",
+            "Fashion",
+            "Hardware",
+            "Cosmetics",
+            "Stationery",
+            "Furniture",
+            "Sports",
+            "Medicine",
+            "Mobile Accessories"
+
+        ];
+
+        let options = `
+            <option value="">
+                Select Category
+            </option>
+        `;
+
+        staticCategories.forEach(c => {
+
+            options += `
+                <option value="${c}">
+                    ${c}
+                </option>
+            `;
+        });
+
+        $.get('/Product/GetCategories', function (data) {
+
+            data.forEach(c => {
+
+                options += `
+                    <option value="${c.categoryName}">
+                        ${c.categoryName}
+                    </option>
+                `;
+            });
+
+            $("#categoryName").html(options);
+        });
+    }
+
+        function showCategoryBox() {
+
+        $("#categoryBox").toggle();
+    }
+
+
+        function addCategory() {
+
+        let name = $("#newCategory").val().trim();
+
+        if (name === "") {
+
+            alert("Enter category name");
+
+            return;
+        }
+
+        $.ajax({
+
+            url: '/Product/AddCategory',
+
+            type: 'POST',
+
+            data: {
+                categoryName: name
+            },
+
+            success: function () {
+
+                $("#newCategory").val("");
+
+                $("#categoryBox").hide();
+
+                loadCategories();
+
+                alert("Category Added");
+            },
+
+            error: function (xhr) {
+
+                alert(xhr.responseText);
+            }
+        });
+    }
+
+    /* ADD / UPDATE */
+       function addProduct() {
+
+        let v1 = validateName();
+        let v2 = validateSku();
+        let v3 = validatePrice();
+        let v4 = validateQty();
+        let v5 = validateUnit();
+
+        if (!v1 || !v2 || !v3 || !v4 || !v5 ) {
+            shake($("#productBox"));
+            showAlert("Fix validation errors", "warning");
+            return;
+        }
+
+        /* let id = $("#name").attr("data-id"); */ // IMPORTANT FIX
+
+        let id = $("#productId").val();
+
+        let url = id ? '/Product/Update' : '/Product/Add';
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: {
+                id: id,
+                name: $("#name").val(),
+                sku: $("#sku").val(),
+                costPrice: $("#costPrice").val(),
+                price: $("#price").val(),
+                qty: $("#qty").val(),
+                unit: $("#unit").val(),
+                categoryName: $("#categoryName").val()
+            },
+            success: function () {
+
+                showAlert(id ? "Product Updated Successfully" : "Product Inserted Successfully");
+
+                resetForm();
+                loadProducts();
+            },
+            error: function () {
+                showAlert("Server error", "error");
+            }
+        });
+    }
+
+    function deleteProduct(id) {
+
+        if (!confirm("Delete this product?")) return;
+
+        $.post('/Product/Delete', { id }, function () {
+            showAlert("Deleted");
+            loadProducts();
+        });
+    }
+
+       function editProduct(id) {
+
+        $.get('/Product/GetById', { id }, function (p) {
+
+            $("#productId").val(p.productId);
+            $("#name").val(p.productName);
+            $("#sku").val(p.sku);
+            $("#costPrice").val(p.costPrice);
+            $("#price").val(p.price);
+            $("#qty").val(p.stockQty);
+            $("#unit").val(p.unit);
+            $("#categoryName").val(p.categoryName);
+
+            // $("#name").attr("data-id", p.productId);
+        });
+    }
+
+     function resetForm() {
+        $("#name,#sku,#price,#qty,#costPrice,#unit").val("");
+        $("#name").removeAttr("data-id"); // reset edit mode
+        $("#categoryName").val("");
+    }
+
+      $(document).ready(function () {
+
+        loadProducts();
+
+        loadCategories();
+    });
+
+</script>

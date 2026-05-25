@@ -1,0 +1,170 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        border: none;
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #6b7fb2, #4f6396);
+        }
+
+    .btn-danger {
+        border: none;
+    }
+
+    .btn-success {
+        background: linear-gradient(121deg, #5d996a, #4e875c);
+    }
+
+    table.dataTable thead {
+        background: #6b7fb2;
+        color: white;
+    }
+
+</style>
+
+<h2 class="page-title">Sales History</h2>
+
+<div class="table-card">
+
+    <table id="salesTable"
+           class="table table-bordered table-striped">
+
+        <thead>
+            <tr>
+                <th>Sr No</th>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th width="220">Action</th>
+            </tr>
+        </thead>
+
+        <tbody></tbody>
+
+    </table>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script>
+
+    $(document).ready(function () {
+
+        loadSales();
+
+    });
+
+    function loadSales() {
+
+        $.ajax({
+
+            url: '/Sales/GetSales',
+            type: 'GET',
+
+            success: function (data) {
+
+                let html = "";
+
+                let index = 1;
+
+                data.forEach(s => {
+
+                    html += `
+                    <tr>
+
+                        <td>${index}</td>
+
+                        <td>${s.invoiceNo}</td>
+
+                        <td>${s.customer}</td>
+
+                        <td>₹ ${s.total}</td>
+
+                        <td>${s.date}</td>
+
+                        <td>
+
+                            <a href="/Sales/InvoicePrint?id=${s.saleId}"
+                               class="btn btn-sm btn-primary">
+                               View
+                            </a>
+
+                            <a href="/Sales/InvoicePdf?id=${s.saleId}"
+                               class="btn btn-sm btn-success">
+                               PDF
+                            </a>
+
+                            <button class="btn btn-sm btn-danger"
+                                    onclick="deleteSale(${s.saleId})">
+                                Delete
+                            </button>
+
+                        </td>
+
+                    </tr>
+                    `;
+
+                    index++;
+                });
+
+                $("#salesTable tbody").html(html);
+
+                $('#salesTable').DataTable();
+
+            }
+
+        });
+
+    }
+
+    function deleteSale(id) {
+
+        if (!confirm("Delete this sale?"))
+            return;
+
+        $.ajax({
+
+            url: '/Sales/DeleteSale',
+
+            type: 'POST',
+
+            data: { id: id },
+
+            success: function () {
+
+                location.reload();
+
+            }
+
+        });
+
+    }
+
+</script>

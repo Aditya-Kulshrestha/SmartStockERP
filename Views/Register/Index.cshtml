@@ -1,0 +1,660 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8" />
+    <title>Register - SmartStock ERP</title>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            overflow-y: auto;
+            background: #f4f7fb;
+        }
+
+        /* LEFT PANEL */
+
+        .left {
+            flex: 1;
+            background: linear-gradient(135deg, #bfcbea, #809cc2);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+            .left::before {
+                content: "";
+                position: absolute;
+                width: 400px;
+                height: 400px;
+                background: rgba(255,255,255,0.08);
+                border-radius: 50%;
+                top: -120px;
+                right: -120px;
+            }
+
+            .left::after {
+                content: "";
+                position: absolute;
+                width: 300px;
+                height: 300px;
+                background: rgba(255,255,255,0.05);
+                border-radius: 50%;
+                bottom: -100px;
+                left: -100px;
+            }
+
+        .brand {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 18px;
+            z-index: 2;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            line-height: 1.8;
+            opacity: 0.95;
+            max-width: 520px;
+            z-index: 2;
+        }
+
+        .badge-box {
+            margin-top: 30px;
+            z-index: 2;
+        }
+
+        .custom-badge {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.15);
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .animation-box {
+            margin-top: 50px;
+            display: flex;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .circle {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 12px solid rgba(255,255,255,0.15);
+            border-top: 12px solid white;
+            animation: spin 5s linear infinite;
+        }
+
+        @@keyframes spin {
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* RIGHT PANEL */
+
+        .right {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px 20px;
+            background: #f5f7fb;
+            overflow-y: auto;
+        }
+
+        .register-box {
+            width: 430px;
+            background: white;
+            padding: 30px;
+            border-radius: 40px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.10);
+            margin: 20px 0;
+        }
+
+            .register-box h2 {
+                margin-bottom: 8px;
+                color: #222;
+            }
+
+        .register-subtitle {
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+            color: #444;
+        }
+
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dcdcdc;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+
+            .input:focus {
+                outline: none;
+                border-color: #2f80ed;
+                box-shadow: 0 0 0 3px rgba(47,128,237,0.15);
+            }
+
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            min-height: 18px;
+            margin-bottom: 10px;
+        }
+
+        .register-btn {
+            width: 100%;
+            border: none;
+            padding: 13px;
+            background: linear-gradient(135deg, #bfcbea, #809cc2);
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .register-btn:hover {
+                background: linear-gradient(135deg, #5871b1, #809cc2);
+            }
+
+        .bottom-link {
+            text-align: center;
+            margin-top: 18px;
+        }
+
+            .bottom-link a {
+                text-decoration: none;
+                color: #2f80ed;
+                font-weight: 600;
+            }
+
+        #alertBox {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 320px;
+            z-index: 9999;
+        }
+
+        @@media(max-width:900px) {
+
+            body {
+                flex-direction: column;
+            }
+
+            .left {
+                display: none;
+            }
+
+            .right {
+                width: 100%;
+                padding: 15px;
+                align-items: flex-start;
+            }
+
+            .register-box {
+                width: 100%;
+                max-width: 420px;
+                border-radius: 25px;
+                padding: 25px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- LEFT -->
+
+    <div class="left">
+
+        <div class="brand">
+            SmartStock ERP
+        </div>
+
+        <div class="subtitle">
+            Create your company account and manage inventory,
+            billing, reports and purchases with ease.
+        </div>
+
+        <div class="badge-box">
+
+            <span class="custom-badge">✔ Secure</span>
+
+            <span class="custom-badge">✔ Cloud ERP</span>
+
+            <span class="custom-badge">✔ Fast Reports</span>
+
+        </div>
+
+        <div class="animation-box">
+
+            @*  <div class="circle"></div> *@
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT -->
+
+    <div class="right">
+
+        <div class="register-box" id="registerBox">
+
+            <h2>Create Company</h2>
+
+            <div class="register-subtitle">
+                Register your business to continue
+            </div>
+
+            <!-- COMPANY -->
+
+            <label>Select Existing Company (Optional)</label>
+            <select id="companyId" class="form-control">
+                <option value="">-- Create New Company --</option>
+            </select>
+
+            <label>Company Name</label>
+
+            <input type="text"
+                   id="companyName"
+                   class="input"
+                   placeholder="Enter company name" />
+
+            <div class="error" id="companyError"></div>
+
+            <!-- OWNER -->
+
+            <label>Owner Name</label>
+
+            <input type="text"
+                   id="ownerName"
+                   class="input"
+                   placeholder="Enter owner name" />
+
+            <div class="error" id="ownerError"></div>
+
+            <!-- EMAIL -->
+
+            <label>Email Address</label>
+
+            <input type="text"
+                   id="email"
+                   class="input"
+                   placeholder="Enter email address" />
+
+            <div class="error" id="emailError"></div>
+
+            <!-- Role -->
+            <label>Role</label>
+
+            <select id="role" class="form-control">
+
+                <option value="">Select Role</option>
+
+                <option value="Admin">Admin</option>
+
+                <option value="Staff">Staff</option>
+
+            </select>
+
+            <div class="error" id="roleError"></div>
+
+            <!-- PHONE -->
+
+            <label>Phone Number</label>
+
+            <input type="text"
+                   id="phone"
+                   class="input"
+                   placeholder="Enter phone number" maxlength="10" />
+
+            <div class="error" id="phoneError"></div>
+
+            <!-- PASSWORD -->
+
+            <label>Password</label>
+
+            <input type="password"
+                   id="password"
+                   class="input"
+                   placeholder="Enter password" />
+
+            <div class="error" id="passwordError"></div>
+
+            <!-- BUTTON -->
+
+            <button class="register-btn"
+                    onclick="registerCompany()">
+
+                Register Company
+
+            </button>
+
+            <div class="bottom-link">
+
+                Already have an account?
+
+                <a href="/Login/Index">
+                    Login
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ALERT -->
+
+    <div id="alertBox"
+         class="alert shadow">
+    </div>
+
+    <script>
+
+
+                function isExistingCompanySelected() {
+            return $("#companyId").val() !== "";
+        }
+
+        function toggleCompanyInput() {
+
+            let isExisting = isExistingCompanySelected();
+
+            if (isExisting) {
+
+                $("#companyName").prop("disabled", true).val("");
+                $("#companyError").text("");
+
+            } else {
+
+                $("#companyName").prop("disabled", false);
+            }
+        }
+
+
+
+        function isValidEmail(email) {
+
+            return /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email);
+        }
+
+        function validateCompany() {
+
+            let value = $("#companyName").val().trim();
+
+            if (value === "") {
+
+                $("#companyError").text("Company name required");
+                return false;
+            }
+
+            $("#companyError").text("");
+            return true;
+        }
+
+        function validateOwner() {
+
+            let value = $("#ownerName").val().trim();
+
+            if (value === "") {
+
+                $("#ownerError").text("Owner name required");
+                return false;
+            }
+
+            $("#ownerError").text("");
+            return true;
+        }
+
+        function validateEmail() {
+
+            let value = $("#email").val().trim();
+
+            if (value === "") {
+
+                $("#emailError").text("Email required");
+                return false;
+            }
+
+            if (!isValidEmail(value)) {
+
+                $("#emailError").text("Invalid email address");
+                return false;
+            }
+
+            $("#emailError").text("");
+            return true;
+        }
+
+               function validateRole() {
+
+            let role = $("#role").val();
+
+            if (role === "") {
+
+                $("#roleError").text("Select role");
+                return false;
+            }
+
+            $("#roleError").text("");
+            return true;
+        }
+
+        function validatePhone() {
+
+            let value = $("#phone").val().trim();
+
+            if (value === "") {
+
+                $("#phoneError").text("Phone required");
+                return false;
+            }
+
+            if (value.length < 10) {
+
+                $("#phoneError").text("Invalid phone number");
+                return false;
+            }
+
+            $("#phoneError").text("");
+            return true;
+        }
+
+        function validatePassword() {
+
+            let value = $("#password").val().trim();
+
+            if (value === "") {
+
+                $("#passwordError").text("Password required");
+                return false;
+            }
+
+            if (value.length < 4) {
+
+                $("#passwordError").text("Password too short");
+                return false;
+            }
+
+            $("#passwordError").text("");
+            return true;
+        }
+
+        // LIVE VALIDATION
+
+        $("#companyName").on("keyup blur", validateCompany);
+
+        $("#ownerName").on("keyup blur", validateOwner);
+
+        $("#email").on("keyup blur", validateEmail);
+
+        $("#role").on("keyup blur", validateRole);
+
+        $("#phone").on("keyup blur", validatePhone);
+
+        $("#password").on("keyup blur", validatePassword);
+
+        // ALERT
+
+        function showAlert(msg, type = "success") {
+
+            let box = $("#alertBox");
+
+            box.removeClass("alert-success alert-danger");
+
+            if (type === "error") {
+
+                box.addClass("alert-danger");
+            }
+            else {
+
+                box.addClass("alert-success");
+            }
+
+            box.text(msg)
+                .fadeIn(200)
+                .delay(2000)
+                .fadeOut(200);
+        }
+
+        // SHAKE EFFECT
+
+        function shake(element) {
+
+            element.stop(true, true)
+                .animate({ marginLeft: "-10px" }, 50)
+                .animate({ marginLeft: "10px" }, 50)
+                .animate({ marginLeft: "-8px" }, 50)
+                .animate({ marginLeft: "8px" }, 50)
+                .animate({ marginLeft: "0px" }, 50);
+        }
+
+              function registerCompany() {
+
+            let isExisting = isExistingCompanySelected();
+
+            let valid1 = true;
+            let valid2 = validateOwner();
+            let valid3 = validateEmail();
+            let valid4 = validatePhone();
+            let valid5 = validatePassword();
+            let valid6 = validateRole();
+
+            // ONLY validate company name if NEW company
+            if (!isExisting) {
+                valid1 = validateCompany();
+            }
+
+            if (!valid1 || !valid2 || !valid3 || !valid4 || !valid5 || !valid6) {
+                shake($("#registerBox"));
+                return;
+            }
+
+            $.ajax({
+                url: '/Register/Register',
+                type: 'POST',
+                data: {
+                    companyId: $("#companyId").val(),
+                    companyName: $("#companyName").val().trim(),
+                    ownerName: $("#ownerName").val().trim(),
+                    email: $("#email").val().trim(),
+                    role: $("#role").val().trim(),
+                    phone: $("#phone").val().trim(),
+                    password: $("#password").val().trim()
+                },
+
+                success: function () {
+                    showAlert("Registration successful");
+
+                    setTimeout(function () {
+                        window.location.href = "/Login/Index";
+                    }, 1200);
+                },
+
+                error: function (xhr) {
+                    showAlert(xhr.responseText || "Registration failed", "error");
+                }
+            });
+        }
+
+                        $(document).ready(function () {
+
+            $.get('/Register/GetAllCompanies', function (res) {
+
+                $("#companyId").empty();
+                $("#companyId").append(`<option value="">-- Create New Company --</option>`);
+
+                let unique = [];
+
+                res.forEach(c => {
+
+                    // duplicate remove (frontend safety)
+                    if (!unique.includes(c.companyName)) {
+
+                        unique.push(c.companyName);
+
+                        $("#companyId").append(
+                            `<option value="${c.companyId}">${c.companyName}</option>`
+                        );
+                    }
+                });
+
+            });
+
+        });
+
+                $("#companyId").on("change", function () {
+            toggleCompanyInput();
+        });
+    </script>
+
+</body>
+</html>

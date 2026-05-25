@@ -1,0 +1,231 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .invoice-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        max-width: 900px;
+    }
+
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .badge-box {
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #2f80ed, #1f3c88);
+        color: white;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    table {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .total-box {
+        text-align: right;
+        font-size: 20px;
+        font-weight: bold;
+        color: #1f3c88;
+        margin-top: 10px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #2f80ed, #1f3c88);
+        border: none;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+    #alertBox {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 20px;
+        color: #777;
+    }
+
+</style>
+
+<h2 class="page-title">Invoice Details</h2>
+
+<div class="invoice-card" id="invoiceBox">
+
+    <div class="invoice-header">
+
+        <div>
+            <h4>INVOICE</h4>
+            <div class="badge-box">
+                Invoice No: <span id="invNo">-</span>
+            </div>
+        </div>
+
+        <div>
+            <p><b>Customer:</b> <span id="customer">-</span></p>
+        </div>
+
+    </div>
+
+    <hr />
+
+    <div id="loading" class="loading">Loading invoice...</div>
+
+    <table class="table table-bordered" id="invoiceTable" style="display:none;">
+        <thead style="background:#f4f7fb;">
+            <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+
+        <tbody id="items"></tbody>
+    </table>
+
+    <div class="total-box">
+        Total: ₹ <span id="total">0</span>
+    </div>
+
+    <br />
+
+    <button class="btn btn-primary" onclick="printInvoice()">
+        Print Invoice
+    </button>
+
+</div>
+
+<!-- ALERT -->
+<div id="alertBox" class="alert shadow"></div>
+
+<script>
+
+    /* ALERT */
+    function showAlert(msg, type = "success") {
+
+        let box = $("#alertBox");
+
+        box.stop(true, true)
+            .removeClass("alert-success alert-danger alert-warning")
+            .addClass("alert");
+
+        if (type === "error") box.addClass("alert-danger");
+        else if (type === "warning") box.addClass("alert-warning");
+        else box.addClass("alert-success");
+
+        box.text(msg)
+            .fadeIn(200)
+            .delay(1500)
+            .fadeOut(200);
+    }
+
+    function printInvoice() {
+        window.print();
+    }
+
+    $(document).ready(function () {
+
+        let id = new URLSearchParams(window.location.search).get("id");
+
+        if (!id) {
+            showAlert("Invalid invoice ID", "error");
+            return;
+        }
+
+        $.ajax({
+            url: '/Sales/Invoice',
+            type: 'GET',
+            data: { id: id },
+
+            beforeSend: function () {
+                $("#loading").show();
+                $("#invoiceTable").hide();
+            },
+
+            success: function (res) {
+
+                if (!res) {
+                    showAlert("Invoice not found", "error");
+                    return;
+                }
+
+                $("#invNo").text(res.invoiceNo || "-");
+                $("#customer").text(res.customer || "-");
+                $("#total").text(res.total || "0");
+
+                let html = "";
+
+                if (!res.items || res.items.length === 0) {
+
+                    html = `<tr><td colspan="3" class="text-center text-muted">No items found</td></tr>`;
+                }
+                else {
+
+                        if (res.items && res.items.length > 0) {
+
+        res.items.forEach(i => {
+
+               html += `
+        <tr>
+            <td>${i.productName}</td>
+            <td>${i.category}</td>
+            <td>${i.unit}</td>
+            <td>${i.qty}</td>
+            <td>₹ ${i.price}</td>
+            <td>₹ ${i.totalLine}</td>
+        </tr>
+    `;
+        });
+
+    } else {
+
+        html = `<tr><td colspan="3">No items</td></tr>`;
+    }
+                }
+
+                $("#items").html(html);
+
+                $("#loading").hide();
+                $("#invoiceTable").fadeIn(200);
+            },
+
+            error: function () {
+
+                $("#loading").hide();
+                showAlert("Failed to load invoice", "error");
+            }
+        });
+
+    });
+
+</script>

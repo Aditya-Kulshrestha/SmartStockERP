@@ -1,0 +1,126 @@
+﻿@{
+    ViewData["Title"] = "Reports";
+}
+
+<style>
+
+    body {
+        background: #f4f7fb;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1f3c88;
+        margin-bottom: 25px;
+    }
+
+    .report-card {
+        border: none;
+        border-radius: 16px;
+        padding: 25px;
+        background: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: 0.2s;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .report-card:hover {
+            transform: translateY(-3px);
+        }
+
+    .report-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 10px;
+    }
+
+    .report-value {
+        font-size: 30px;
+        font-weight: 700;
+        color: #1f3c88;
+    }
+
+    .icon-box {
+        font-size: 22px;
+        margin-bottom: 10px;
+    }
+
+    .revenue {
+        color: #2ecc71;
+    }
+
+    .invoice {
+        color: #3498db;
+    }
+
+    .product {
+        color: #f39c12;
+    }
+
+</style>
+
+<div class="container mt-4">
+
+    <div class="page-title">📊 Monthly Reports Dashboard</div>
+
+    <div class="row g-4">
+
+        <!-- REVENUE -->
+        <div class="col-md-4">
+
+            <div class="report-card">
+
+                <div class="icon-box revenue">💰</div>
+
+                <div class="report-title">Total Revenue</div>
+
+                <div class="report-value">
+                    ₹ @ViewBag.TotalSales
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- INVOICES -->
+        <div class="col-md-4">
+
+            <div class="report-card">
+
+                <div class="icon-box invoice">🧾</div>
+
+                <div class="report-title">Total Invoices</div>
+
+                <div class="report-value">
+                    @ViewBag.TotalInvoices
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- TOP PRODUCT -->
+        <div class="col-md-4">
+
+            <div class="report-card">
+
+                <div class="icon-box product">🏆</div>
+
+                <div class="report-title">Top Product</div>
+
+                <div class="report-value">
+                    @ViewBag.TopProduct
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

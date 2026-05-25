@@ -1,0 +1,395 @@
+﻿@{
+    ViewData["Title"] = "Purchase";
+}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+
+<style>
+
+    body {
+        background: #f4f7fb;
+    }
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #1f3c88;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .error {
+        font-size: 12px;
+        color: #e74c3c;
+        min-height: 18px;
+    }
+
+
+    .btn-primary {
+        background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        border: none;
+        padding: 6px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            background: linear-gradient(135deg, #6b7fb2, #4f6396);
+        }
+
+    .btn-success {
+        background: linear-gradient(121deg, #a4dab0, #509c63);
+        border: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+        .btn-success:hover {
+            opacity: 0.9;
+            background: linear-gradient(121deg, #5d996a, #4e875c);
+        }
+
+    #alertBox {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+    }
+
+    div.dataTables_wrapper div.dataTables_length select {
+        width: 60px;
+        display: inline-block;
+    }
+
+</style>
+
+<div class="container mt-4">
+
+    <h2 class="page-title">Purchase Entry</h2>
+
+    <div id="alertBox" class="alert shadow"></div>
+
+    <div class="card p-4 mt-3">
+
+        <!-- PRODUCT -->
+        <label>Product</label>
+        <select id="productId" class="form-control">
+            <option value="">Select Product</option>
+        </select>
+        <div class="error" id="productError"></div>
+
+        <!-- QTY -->
+        <label class="mt-3">Quantity</label>
+        <input type="number" id="qty" class="form-control" />
+        <div class="error" id="qtyError"></div>
+
+        <!-- PRICE -->
+        <label class="mt-3">Purchase Price</label>
+        <input type="number" id="price" class="form-control" />
+        <div class="error" id="priceError"></div>
+
+        <button id="saveBtn" class="btn btn-primary mt-3" onclick="savePurchase()">
+            Save Purchase
+        </button>
+
+    </div>
+</div>
+
+<hr />
+
+<div class="form-card mt-3">
+
+    <table id="purchaseTable" class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Sr</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Date</th>
+                <th>Invoice No</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div id="alertBox" class="alert shadow"></div>
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    loadProducts();
+
+    function loadProducts() {
+
+
+        $.get('/Purchase/GetProducts', function (data) {
+
+            data.forEach(function (p) {
+
+                $("#productId").append(`
+                    <option value="${p.productId}">
+                        ${p.productName}
+                    </option>
+                `);
+            });
+        });
+    }
+
+
+             function deletePurchase(id) {
+
+        if (!confirm("Delete this purchase?")) return;
+
+        $.post('/Purchase/DeletePurchase', { id: id }, function () {
+
+            showAlert("Deleted successfully");
+
+            loadPurchases(); // reload table properly
+        });
+    }
+    // ---------------- VALIDATION ----------------
+
+    function validateProduct() {
+
+        if ($("#productId").val() === "") {
+            $("#productError").text("Please select product");
+            return false;
+        }
+
+        $("#productError").text("");
+        return true;
+    }
+
+        function validateCostPrice() {
+
+        let v = $("#price").val();
+
+        if (v === "" || v <= 0) {
+            $("#priceError").text("Enter valid cost price");
+            return false;
+        }
+
+        $("#priceError").text("");
+        return true;
+    }
+
+    function validateQty() {
+
+        let qty = $("#qty").val();
+
+        if (qty === "" || qty <= 0) {
+            $("#qtyError").text("Enter valid quantity");
+            return false;
+        }
+
+        $("#qtyError").text("");
+        return true;
+    }
+
+    function validatePrice() {
+
+        let price = $("#price").val();
+
+        if (price === "" || price <= 0) {
+            $("#priceError").text("Enter valid price");
+            return false;
+        }
+
+        $("#priceError").text("");
+        return true;
+    }
+
+    // ---------------- ALERT ----------------
+
+    function showAlert(msg, type = "success") {
+
+        let box = $("#alertBox");
+
+        box.removeClass("alert-success alert-danger");
+
+        if (type === "error") {
+            box.addClass("alert-danger");
+        }
+        else {
+            box.addClass("alert-success");
+        }
+
+        box.text(msg)
+            .fadeIn(200)
+            .delay(2000)
+            .fadeOut(200);
+    }
+
+    // ---------------- SAVE PURCHASE ----------------
+
+    function savePurchase() {
+
+        let v1 = validateProduct();
+        let v2 = validateQty();
+        let v3 = validateCostPrice();
+
+        if (!v1 || !v2 || !v3) return;
+
+        $.ajax({
+
+            url: '/Purchase/SavePurchase',
+            type: 'POST',
+            data: {
+                productId: $("#productId").val(),
+                qty: $("#qty").val(),
+                purchasePrice: $("#price").val()
+            },
+
+            success: function (res) {
+
+                showAlert(res.message || "Purchase saved successfully");
+
+                setTimeout(function () {
+                    location.reload();
+                }, 1200);
+
+                loadPurchases();
+            },
+
+            error: function () {
+                showAlert("Something went wrong", "error");
+            }
+        });
+    }
+
+         let purchaseTable = null;
+
+    $(document).ready(function () {
+        loadPurchases();
+    });
+
+    function loadPurchases() {
+
+        $.get('/Purchase/GetPurchases', function (data) {
+
+            let html = "";
+            let i = 1;
+
+            data.forEach(x => {
+
+                html += `
+                    <tr>
+                        <td>${i++}</td>
+                        <td>${x.productName}</td>
+                        <td>${x.qty}</td>
+                        <td>${x.price}</td>
+                        <td>${x.total}</td>                  
+                        <td>${x.date}</td>
+                        <td>${x.invoiceNo}</td>
+                        <td>
+                        <button class="btn btn-warning btn-sm"
+                                onclick="editPurchase(${x.purchaseId})">
+                                Edit
+                            </button>
+                            <button class="btn btn-danger btn-sm"
+                                onclick="deletePurchase(${x.purchaseId})">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            $("#purchaseTable tbody").html(html);
+
+            // destroy safely
+            if (purchaseTable) {
+                purchaseTable.destroy();
+            }
+
+            purchaseTable = $("#purchaseTable").DataTable({
+                pageLength: 5,
+                lengthMenu: [5, 10, 25, 50],
+                destroy: true
+            });
+        });
+    }
+
+          function loadProductsForEdit(selectedId) {
+
+        $.get('/Purchase/GetProducts', function (data) {
+
+            let ddl = $("#productId");
+            ddl.empty();
+            ddl.append(`<option value="">Select Product</option>`);
+
+            data.forEach(p => {
+                ddl.append(`<option value="${p.productId}">${p.productName}</option>`);
+            });
+
+            // IMPORTANT
+            ddl.val(selectedId);
+        });
+    }
+    function editPurchase(id) {
+
+        $.get('/Purchase/GetPurchaseEdit', { id }, function (res) {
+
+            $("#qty").val(res.qty);
+            $("#price").val(res.price);
+
+            // load dropdown first, THEN set value
+            loadProductsForEdit(res.productId);
+
+            // change button to update mode
+            $("#saveBtn")
+                .text("Update Purchase")
+                .attr("onclick", `updatePurchase(${id})`);
+        });
+    }
+
+
+            function updatePurchase(id) {
+
+        $.post('/Purchase/UpdatePurchase', {
+            id: id,
+            productId: $("#productId").val(),
+            qty: $("#qty").val(),
+            purchasePrice: $("#price").val()
+        }, function () {
+
+            showAlert("Updated successfully");
+            loadPurchases();
+            // reset button
+            $("#saveBtn")
+                .text("Save Purchase")
+                .attr("onclick", "savePurchase()");
+
+            loadPurchases();
+        });
+    }
+
+</script>

@@ -1,0 +1,122 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+<style>
+
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        border: none;
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #6b7fb2, #4f6396);
+        }
+
+    .btn-danger {
+        border: none;
+    }
+
+    .btn-success {
+        background: linear-gradient(121deg, #5d996a, #4e875c);
+        border: none;
+    }
+
+    table.dataTable thead {
+        background: #6b7fb2;
+        color: white;
+    }
+
+</style>
+
+<h2 class="page-title">Purchase History</h2>
+
+<div class="table-card">
+
+    <table id="purchaseTable" class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Sr</th>
+                <th>Invoice</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        load();
+    });
+
+    function load() {
+
+        $.get('/Purchase/GetPurchases', function (data) {
+
+            let html = "";
+            let i = 1;
+
+            data.forEach(x => {
+
+                html += `
+                <tr>
+                    <td>${i++}</td>
+                    <td>${x.invoiceNo}</td>
+                    <td>${x.productName}</td>
+                    <td>${x.qty}</td>
+                    <td>₹ ${x.price}</td>
+                    <td>${x.date}</td>
+                    <td>
+                            <a href="/Purchase/InvoicePrint?id=${x.purchaseId}" class="btn btn-primary btn-sm" target="_blank">
+        View
+    </a>
+        <a href="/Purchase/InvoicePdf?id=${x.purchaseId}"
+       class="btn btn-success btn-sm">
+       PDF
+    </a>
+                        <button onclick="del(${x.purchaseId})" class="btn btn-danger btn-sm">Delete</button>
+                    </td>
+                </tr>`;
+            });
+
+            $("#purchaseTable tbody").html(html);
+
+            $('#purchaseTable').DataTable({
+                destroy: true
+            });
+        });
+    }
+
+    function del(id){
+        $.post('/Purchase/DeletePurchase', { id }, function(){
+            load();
+        });
+    }
+</script>

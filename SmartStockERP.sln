@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartStockERP", "SmartStockERP.csproj", "{6872FDB1-D09B-4759-A9CA-89C57618224F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6872FDB1-D09B-4759-A9CA-89C57618224F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6872FDB1-D09B-4759-A9CA-89C57618224F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6872FDB1-D09B-4759-A9CA-89C57618224F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6872FDB1-D09B-4759-A9CA-89C57618224F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2621A61C-6470-4316-9CB6-151A53B109C1}
+	EndGlobalSection
+EndGlobal

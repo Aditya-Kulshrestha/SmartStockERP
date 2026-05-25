@@ -1,0 +1,405 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+<style>
+    .page-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #1f3c88;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444;
+        margin-bottom: 6px;
+    }
+
+    .input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        outline: none;
+        margin-bottom: 8px;
+    }
+
+        .input:focus {
+            border-color: #2f80ed;
+            box-shadow: 0 0 0 3px rgba(47,128,237,0.15);
+        }
+
+    .btn-primary {
+        background: linear-gradient(135deg,#98b5dd,#6b7fb2);
+        border: none;
+        border-radius: 10px;
+        padding: 6px 18px;
+        font-weight: 600;
+    }
+
+    #alertBox {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 280px;
+    }
+</style>
+
+<input type="hidden" id="returnId" value="0" />
+
+<h2 class="page-title">🔄 Sales Return</h2>
+
+<div class="form-card mb-3">
+
+    <div class="row">
+
+        <div class="col-md-4">
+            <label>Invoice No</label>
+            <input class="input" id="invoiceNo" placeholder="Enter Invoice No" />
+        </div>
+
+        <div class="col-md-4">
+            <label>Product</label>
+            <select class="input" id="productId">
+                <option value="">Select Product</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label>Qty</label>
+            <input class="input" id="qty" type="number" readonly />
+        </div>
+
+        <div class="col-md-2">
+            <label>Reason</label>
+            <input class="input" id="reason" />
+        </div>
+
+    </div>
+
+    <button class="btn btn-primary mt-2"
+            id="btnSave"
+            onclick="saveReturn()">
+
+        Process Return
+    </button>
+
+    <button class="btn btn-secondary mt-2"
+            id="btnCancel"
+            onclick="resetForm()"
+            style="display:none; margin-left:10px;">
+        Cancel
+    </button>
+
+</div>
+
+<div class="form-card">
+
+    <table id="tblReturns" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Invoice</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+    </table>
+
+</div>
+
+<div id="alertBox" class="alert shadow"></div>
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+
+    let table;
+
+    $(document).ready(function () {
+
+        loadReturns();
+
+        // INVOICE CHANGE → AUTO LOAD PRODUCTS
+        $("#invoiceNo").on("change", function () {
+
+            let invoice = $(this).val();
+            if (!invoice) return;
+
+            $.get("/Sales/GetInvoiceProducts", { invoiceNo: invoice }, function (res) {
+
+                let ddl = $("#productId");
+                ddl.empty();
+
+                ddl.append(`<option value="">Select Product</option>`);
+
+                if (res.length === 0) {
+                    showAlert("No products found", "warning");
+                    return;
+                }
+
+                $.each(res, function (i, item) {
+
+                    ddl.append(`
+                        <option value="${item.productId}"
+                                data-qty="${item.qty}">
+                            ${item.productName}
+                        </option>
+                    `);
+                });
+
+                // auto select first product
+                ddl.val(res[0].productId).trigger("change");
+            });
+        });
+
+        // PRODUCT CHANGE → AUTO QTY
+        $("#productId").on("change", function () {
+
+            let qty = $(this).find(":selected").data("qty") || 0;
+
+            $("#qty").val(qty);
+        });
+
+    });
+
+
+    // ================= LOAD RETURNS TABLE =================
+    function loadReturns() {
+
+        if ($.fn.DataTable.isDataTable('#tblReturns')) {
+            $('#tblReturns').DataTable().destroy();
+        }
+
+        table = $("#tblReturns").DataTable({
+
+            ajax: {
+                url: "/Sales/GetReturns",
+                dataSrc: ""
+            },
+
+            pageLength: 5,
+
+            columns: [
+
+                { data: "invoiceNo" },
+                { data: "productName" },
+                { data: "qty" },
+                { data: "reason" },
+                { data: "date" },
+
+                {
+                    data: null,
+                    render: function (data, type, row) {
+
+                        return `
+                            <button class="btn btn-sm btn-primary"
+                                onclick="editReturn(
+                                    ${row.returnId},
+                                    '${row.invoiceNo}',
+                                    ${row.productId},
+                                    ${row.qty},
+                                    \`${row.reason || ""}\`
+                                )">
+                                Edit
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                onclick="deleteReturn(${row.returnId})">
+                                Delete
+                            </button>
+                        `;
+                    }
+                }
+            ]
+        });
+    }
+
+
+    // ================= SAVE =================
+    function saveReturn() {
+
+        let returnId = $("#returnId").val();
+
+        if (returnId == "0") {
+            returnItem();
+        } else {
+            updateReturn();
+        }
+    }
+
+
+    // ================= INSERT =================
+    function returnItem() {
+
+        if (!$("#invoiceNo").val()
+            || !$("#productId").val()
+            || !$("#qty").val()) {
+
+            showAlert("Fill required fields", "warning");
+            return;
+        }
+
+        $.ajax({
+
+            url: "/Sales/ReturnSale",
+            type: "POST",
+            data: {
+                invoiceNo: $("#invoiceNo").val(),
+                productId: $("#productId").val(),
+                qty: $("#qty").val(),
+                reason: $("#reason").val()
+            },
+
+            success: function (res) {
+
+                if (res.success) {
+
+                    showAlert(res.message);
+
+                    $("#tblReturns").DataTable().ajax.reload();
+
+                    resetForm();
+
+                } else {
+                    showAlert(res.message, "error");
+                }
+            }
+        });
+    }
+
+
+    // ================= EDIT =================
+    function editReturn(id, invoiceNo, productId, qty, reason) {
+
+        $("#returnId").val(id);
+        $("#invoiceNo").val(invoiceNo);
+
+        $.get("/Sales/GetInvoiceProducts", { invoiceNo: invoiceNo }, function (res) {
+
+            let ddl = $("#productId");
+            ddl.empty();
+
+            $.each(res, function (i, item) {
+
+                ddl.append(`
+                    <option value="${item.productId}">
+                        ${item.productName}
+                    </option>
+                `);
+            });
+
+            $("#productId").val(productId).trigger("change");
+        });
+
+        $("#qty").val(qty);
+        $("#reason").val(reason);
+
+        $("#btnSave").text("Update Return");
+        $("#btnCancel").show();
+    }
+
+
+    // ================= UPDATE =================
+    function updateReturn() {
+
+        $.ajax({
+
+            url: "/Sales/UpdateReturn",
+            type: "POST",
+            data: {
+                returnId: $("#returnId").val(),
+                qty: $("#qty").val(),
+                reason: $("#reason").val()
+            },
+
+            success: function (res) {
+
+                if (res.success) {
+
+                    showAlert(res.message);
+
+                    $("#tblReturns").DataTable().ajax.reload();
+
+                    resetForm();
+
+                } else {
+                    showAlert(res.message, "error");
+                }
+            }
+        });
+    }
+
+
+    // ================= DELETE =================
+    function deleteReturn(id) {
+
+        if (!confirm("Delete this return?")) return;
+
+        $.post("/Sales/DeleteReturn",
+            { returnId: id },
+            function (res) {
+
+                if (res.success) {
+
+                    showAlert("Deleted Successfully");
+
+                    $("#tblReturns").DataTable().ajax.reload();
+
+                } else {
+                    showAlert(res.message, "error");
+                }
+            });
+    }
+
+
+    // ================= RESET =================
+    function resetForm() {
+
+        $("#returnId").val(0);
+        $("#invoiceNo").val("");
+        $("#productId").html(`<option value="">Select Product</option>`);
+        $("#qty").val("");
+        $("#reason").val("");
+
+        $("#btnSave").text("Process Return");
+        $("#btnCancel").hide();
+    }
+
+
+    // ================= ALERT =================
+    function showAlert(msg, type = "success") {
+
+        let box = $("#alertBox");
+
+        box.stop(true, true)
+            .removeClass("alert-success alert-danger alert-warning")
+            .addClass("alert");
+
+        if (type === "error") box.addClass("alert-danger");
+        else if (type === "warning") box.addClass("alert-warning");
+        else box.addClass("alert-success");
+
+        box.text(msg)
+            .fadeIn(200)
+            .delay(1500)
+            .fadeOut(200);
+    }
+
+</script>

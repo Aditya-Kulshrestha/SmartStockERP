@@ -1,0 +1,175 @@
+﻿@model int
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Purchase Invoice</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6fb;
+            padding: 30px;
+        }
+
+        .invoice-box {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+
+        .top {
+            background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+            color: white;
+            padding: 30px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            table th {
+                background: linear-gradient(135deg, #6b7fb2, #4f6396);
+                color: white;
+                padding: 12px;
+            }
+
+            table td {
+                padding: 12px;
+                border-bottom: 1px solid #eee;
+            }
+
+        .total-box {
+            width: 300px;
+            margin-left: auto;
+            margin-top: 30px;
+        }
+
+        .grand {
+            background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #98b5dd, #6b7fb2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="invoice-box">
+
+        <div class="top">
+            <h1>SMART STOCK ERP</h1>
+            <div>Purchase Invoice</div>
+        </div>
+
+        <div class="content">
+
+            <div class="info">
+
+                <div>
+                    <h3>Company</h3>
+                    <div id="company"></div>
+                    <div id="phone"></div>
+                    <div id="email"></div>
+                </div>
+
+                <div>
+                    <h3>Invoice</h3>
+                    <div id="inv"></div>
+                    <div id="date"></div>
+                </div>
+
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tbl"></tbody>
+            </table>
+
+            <div class="total-box">
+                <table>
+                    <tr class="grand">
+                        <td>Grand Total</td>
+                        <td id="total"></td>
+                    </tr>
+                </table>
+            </div>
+
+            <button class="btn" onclick="window.print()">Print Invoice</button>
+
+        </div>
+    </div>
+
+    <script>
+
+        $(document).ready(function () {
+
+            let id = new URLSearchParams(window.location.search).get("id");
+
+            $.get('/Purchase/Invoice?id=' + id, function (res) {
+
+                $("#inv").text(res.invoiceNo);
+                $("#company").text(res.companyName);
+                $("#phone").text(res.phone);
+                $("#email").text(res.email);
+                $("#date").text(res.date);
+                $("#total").text("₹ " + res.total);
+
+                let html = "";
+
+                res.items.forEach(i => {
+                    html += `
+                        <tr>
+                            <td>${i.productName}</td>
+                            <td>${i.qty}</td>
+                            <td>₹ ${i.price}</td>
+                            <td>₹ ${i.totalLine}</td>
+                        </tr>
+                    `;
+                });
+
+                $("#tbl").html(html);
+            });
+
+        });
+
+    </script>
+
+</body>
+</html>
