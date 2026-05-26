@@ -15,7 +15,7 @@ public class LoginController : Controller
     {
         return View();
     }
-    [HttpPost]
+
     [HttpPost]
     public IActionResult Login(string email, string password, string companyId)
     {

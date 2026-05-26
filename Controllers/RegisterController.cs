@@ -12,6 +12,11 @@ namespace SmartStockERP.Controllers
             _config = config;
         }
 
+        public IActionResult Index()
+        {
+            return View();
+        }
+
         [HttpGet]
         public IActionResult GetAllCompanies()
         {
