@@ -24,33 +24,43 @@ namespace SmartStockERP.Controllers
             {
                 string connStr = _config.GetConnectionString("DefaultConnection");
 
-                var list = new List<object>();
+                var companies = new List<object>();
 
-                using var con = new NpgsqlConnection(connStr);
-                con.Open();
-
-                var cmd = new NpgsqlCommand(@"
-                    SELECT company_id, company_name 
-                    FROM companies 
-                    ORDER BY company_id DESC
-                ", con);
-
-                using var dr = cmd.ExecuteReader();
-
-                while (dr.Read())
+                using (var con = new NpgsqlConnection(connStr))
                 {
-                    list.Add(new
+                    con.Open();
+
+                    string query = @"SELECT company_id, company_name 
+                             FROM companies 
+                             ORDER BY company_id DESC";
+
+                    using (var cmd = new NpgsqlCommand(query, con))
                     {
-                        companyId = dr["company_id"]?.ToString(),
-                        companyName = dr["company_name"]?.ToString()
-                    });
+                        using (var dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                companies.Add(new
+                                {
+                                    companyId = Convert.ToInt32(dr["company_id"]),
+                                    companyName = dr["company_name"].ToString()
+                                });
+                            }
+                        }
+                    }
                 }
 
-                return Json(list);
+                return Json(companies);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                Console.WriteLine(ex.ToString());
+
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    inner = ex.InnerException?.Message
+                });
             }
         }
 
